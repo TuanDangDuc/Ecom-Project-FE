@@ -1,0 +1,110 @@
+:root {
+  /* Electro-style palette */
+  --primary-color: #E53935;
+  --primary-gradient: linear-gradient(135deg, #EF5350 0%, #C62828 100%);
+  --primary-color-hover: #C62828;
+  --primary-dark: #1A1A2E;
+  --primary-mid: #212121;
+
+  --text-dark: #111827;
+  --text-color: #374151;
+  --text-light: #9CA3AF;
+  --bg-color: #F5F5F5;
+  --white: #FFFFFF;
+  --border-color: #E5E7EB;
+
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-full: 4px;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+  --shadow-hover: 0 12px 32px rgba(229,57,53,0.15);
+
+  --transition: all 0.3s ease;
+  --transition-fast: all 0.15s ease;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--text-color);
+  background-color: var(--bg-color);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: var(--transition-fast);
+}
+
+ul { list-style: none; }
+
+.container {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 22px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.3px;
+  transition: var(--transition-fast);
+  gap: 8px;
+}
+
+.btn:active { transform: scale(0.97); }
+
+.btn-primary {
+  background: var(--primary-color);
+  color: var(--white);
+}
+.btn-primary:hover {
+  background: var(--primary-color-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--primary-color);
+  border: 1.5px solid var(--primary-color);
+}
+.btn-outline:hover {
+  background: var(--primary-color);
+  color: var(--white);
+}
+
+h1, h2, h3, h4, h5, h6, .title {
+  font-family: 'Inter', sans-serif;
+  color: var(--text-dark);
+  font-weight: 700;
+}
+
+.glass {
+  background: rgba(255,255,255,0.9);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.5);
+}
