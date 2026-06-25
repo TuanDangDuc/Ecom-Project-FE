@@ -4,7 +4,7 @@
 //  Thay BASE_URL bằng địa chỉ backend thật khi có
 // ============================================================
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'https//api.ecom.anhchuno.id.vn/api'
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://api.ecom.anhchuno.id.vn/api'
 
 
 // Sửa lại hết apiAuth, user, shop, address 
