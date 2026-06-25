@@ -10,8 +10,8 @@
           <h1 class="shop-name">{{ shop.name }}</h1>
           <div class="shop-stats">
             <span><strong>{{ shopProducts.length }}</strong> Sản phẩm</span>
-            <span><strong>{{ shop.ratingAverage }}</strong> Đánh giá</span>
-            <span><strong>Đang hoạt động</strong></span>
+            <span><strong>{{ shop.ratingAverage ?? 0 }}</strong> Đánh giá</span>
+            <span><strong>{{ shop.shopStatus || shop.status || 'ACTIVE' }}</strong></span>
           </div>
           <button class="btn btn-outline btn-sm mt-2">+ Theo Dõi</button>
         </div>
@@ -33,7 +33,9 @@
           <div class="product-info">
             <h4 class="product-name">{{ product.name }}</h4>
             <div class="product-price-row">
-              <div class="product-price">₫{{ formatPrice(product.basePrice) }}</div>
+              <div class="product-price">
+                  ₫{{ formatPrice(product.price ?? product.basePrice) }}
+              </div>
             </div>
             <div class="product-rating">
               <span class="stars">★★★★★</span>
@@ -51,27 +53,52 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import { useRoute } from 'vue-router';
-import { shops, products } from '../../mock/data';
-import { useCartStore } from '../../stores/cart';
+import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import { shopApi, productApi } from '../../api'
 
-const route = useRoute();
-const cartStore = useCartStore();
+const route = useRoute()
 
-const shopId = parseInt(route.params.id);
+const shop = ref(null)
+const shopProducts = ref([])
+const loading = ref(false)
 
-const shop = computed(() => shops.find(s => s.id === shopId));
-const shopProducts = computed(() => products.filter(p => p.shopId === shopId));
+const shopId = Number(route.params.id)
 
-const addToCart = (product) => {
-  cartStore.addToCart(product, 1);
-  alert('Đã thêm sản phẩm vào giỏ hàng!');
-};
+const loadShop = async () => {
+  try {
+    const res = await shopApi.getById(shopId)
+    shop.value = res.data || res.shop || res
+  } catch (err) {
+    console.error('[ShopView] loadShop:', err)
+    shop.value = null
+  }
+}
+
+const loadProducts = async () => {
+  try {
+    const res = await productApi.getByShopId(shopId)
+    const list = res.data || res.products || res.result || res || []
+    shopProducts.value = Array.isArray(list) ? list : []
+  } catch (err) {
+    console.error('[ShopView] loadProducts:', err)
+    shopProducts.value = []
+  }
+}
+
+onMounted(async () => {
+  try {
+    loading.value = true
+    await loadShop()
+    await loadProducts()
+  } finally {
+    loading.value = false
+  }
+})
 
 const formatPrice = (price) => {
-  return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-};
+  return Number(price || 0).toLocaleString('vi-VN')
+}
 </script>
 
 <style scoped>

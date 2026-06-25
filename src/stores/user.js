@@ -1,7 +1,10 @@
+import { authApi, userApi, addressApi, orderApi, shopApi } from '../api/index.js'
+//bổ sung /login
 import { ref, computed } from 'vue';
 import { defineStore } from 'pinia';
 import { users, addresses as mockAddresses, orders as mockOrders } from '../mock/data';
 import { useShopStore } from './shop';
+
 
 export const useUserStore = defineStore('user', () => {
   const savedUser = localStorage.getItem('user');
@@ -24,52 +27,29 @@ export const useUserStore = defineStore('user', () => {
   /**
    * 🛠️ HÀM ĐĂNG NHẬP ĐÃ SỬA THÀNH ASYNC ĐỂ KẾT NỐI API THẬT
    */
+  //Sửa toàn bộ hàm login
   async function login(username, password) {
-    try {
-      // Lấy đường dẫn API từ môi trường env hoặc mặc định cổng 8080 của PHP
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
-      
-      const response = await fetch(`${baseUrl}/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ username, password })
-      });
+  try {
+    const loginRes = await authApi.login(username, password)
 
-      if (!response.ok) {
-        throw new Error('Sai tài khoản hoặc Backend trả lỗi');
-      }
+    if (!loginRes.success) return false
 
-      const res = await response.json();
-      
-      // TRƯỜNG HỢP 1: Kết nối API PHP thành công và nhận được Token thật
-      if (res.token) {
-        localStorage.setItem('token', res.token); // Lưu token "cứu mạng" vào localStorage
-        localStorage.setItem('userId', res.user.id);
-        localStorage.setItem('userRole', res.user.role || 'BUYER');
-        localStorage.setItem('user', JSON.stringify(res.user));
-        currentUser.value = res.user;              // Cập nhật thông tin user đăng nhập
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.warn('⚠️ Lỗi kết nối API Backend, tự động chuyển sang cơ chế dữ liệu ảo dự phòng:', error.message);
-      
-      // TRƯỜNG HỢP 2 (DỰ PHÒNG): Tìm trong mock/data nếu Backend chưa viết xong route đăng nhập
-      const user = users.find(u => u.userName === username && u.password === password);
-      if (user) {
-        currentUser.value = user;
-        // Tự cấp một Token giả định để khi Thêm vào giỏ hàng không bị lỗi trống Token
-        localStorage.setItem('token', 'mock_token_for_' + user.userName); 
-        localStorage.setItem('userId', user.id);
-        localStorage.setItem('userRole', user.role || 'BUYER');
-        localStorage.setItem('user', JSON.stringify(user));
-        return true;
-      }
-      return false;
-    }
+    const userRes = await userApi.getByUsername(username)
+    const user = userRes.data || userRes.user || userRes
+
+    user.role = loginRes.role
+
+    localStorage.setItem('userId', user.id)
+    localStorage.setItem('userRole', loginRes.role)
+    localStorage.setItem('user', JSON.stringify(user))
+
+    currentUser.value = user
+    return true
+  } catch (error) {
+    console.error('[Login]', error)
+    return false
   }
+}
 
   /**
    * 🛠️ HÀM ĐĂNG XUẤT - XOÁ SẠCH DẤU VẾT TOKEN

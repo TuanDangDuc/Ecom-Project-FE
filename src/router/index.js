@@ -61,7 +61,7 @@ const router = createRouter({
     {
       path: '/seller',
       component: SellerLayout,
-      meta: { requiresAuth: true, requiresShop: true },
+      meta: { requiresAuth: true, requiresSeller: true },
       children: [
         { path: 'dashboard', component: DashboardView },
         { path: 'orders', component: SellerOrdersView },
@@ -86,19 +86,19 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
-  const userStore = useUserStore();
-  
+  const userStore = useUserStore()
+
   if (to.meta.requiresAuth && !userStore.isLoggedIn) {
-    next('/login');
-  } else if (to.meta.requiresShop && !userStore.currentUser?.shopId) {
-    alert('Bạn cần có cửa hàng để truy cập trang này!');
-    next('/');
-  } else if (to.meta.requiresAdmin && userStore.currentUser?.role !== 'admin') {
-    alert('Bạn không có quyền truy cập trang quản trị!');
-    next('/');
+    next('/login')
+  } else if (to.meta.requiresSeller && userStore.currentUser?.role !== 'SELLER') {
+    alert('Bạn không có quyền truy cập trang người bán!')
+    next('/')
+  } else if (to.meta.requiresAdmin && userStore.currentUser?.role !== 'ADMIN') {
+    alert('Bạn không có quyền truy cập trang quản trị!')
+    next('/')
   } else {
-    next();
+    next()
   }
-});
+})
 
 export default router;

@@ -26,7 +26,9 @@
         
         <div class="form-error" v-if="errorMsg">{{ errorMsg }}</div>
         
-        <button type="submit" class="btn btn-primary btn-block">Đăng Ký</button>
+        <button type="submit" class="btn btn-primary btn-block" :disabled="isLoading">
+          {{ isLoading ? 'Đang đăng ký...' : 'Đăng Ký' }}
+        </button>
       </form>
 
       <div class="auth-footer">
@@ -37,27 +39,50 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { authApi } from '../../api'
 
-const router = useRouter();
+const router = useRouter()
 
-const username = ref('');
-const email = ref('');
-const password = ref('');
-const confirmPassword = ref('');
-const errorMsg = ref('');
+const username = ref('')
+const email = ref('')
+const password = ref('')
+const confirmPassword = ref('')
+const errorMsg = ref('')
+const isLoading = ref(false)
 
-const handleRegister = () => {
-  errorMsg.value = '';
+const handleRegister = async () => {
+  errorMsg.value = ''
+
   if (password.value !== confirmPassword.value) {
-    errorMsg.value = 'Mật khẩu xác nhận không khớp!';
-    return;
+    errorMsg.value = 'Mật khẩu xác nhận không khớp!'
+    return
   }
-  // Mock registration
-  alert("Đăng ký thành công! Vui lòng đăng nhập.");
-  router.push('/login');
-};
+
+  try {
+    isLoading.value = true
+
+    const payload = {
+      username: username.value,
+      email: email.value,
+      password: password.value
+    }
+
+    const res = await authApi.register(payload)
+
+    if (res.success) {
+      alert('Đăng ký thành công! Vui lòng đăng nhập.')
+      router.push('/login')
+    } else {
+      errorMsg.value = res.message || 'Đăng ký thất bại!'
+    }
+  } catch (err) {
+    errorMsg.value = err.message || 'Đăng ký thất bại!'
+  } finally {
+    isLoading.value = false
+  }
+}
 </script>
 
 <style scoped>

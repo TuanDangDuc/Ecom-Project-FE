@@ -31,7 +31,9 @@
           <div @click="toggleDropdown" class="user-trigger">
             <div class="user-avatar">
               <img :src="userStore.currentUser.avatarUrl" v-if="userStore.currentUser.avatarUrl" alt="">
-              <span v-else>{{ userStore.currentUser.fullName.charAt(0) }}</span>
+              <span v-else>
+                {{ (userStore.currentUser.fullName || userStore.currentUser.username || 'U').charAt(0) }}
+              </span>
             </div>
             <span class="action-label">Tài khoản</span>
           </div>
@@ -40,8 +42,20 @@
               <router-link to="/profile/account" class="dropdown-item">Hồ Sơ Của Tôi</router-link>
               <router-link to="/profile/orders" class="dropdown-item">Đơn Mua</router-link>
               <router-link to="/profile/addresses" class="dropdown-item">Địa Chỉ</router-link>
-              <router-link to="/seller/dashboard" class="dropdown-item" v-if="userStore.currentUser.shopId">Kênh Người Bán</router-link>
-              <router-link to="/admin/dashboard" class="dropdown-item" v-if="userStore.currentUser.role === 'admin'">Kênh Quản Trị</router-link>
+              <router-link
+                to="/seller/dashboard"
+                class="dropdown-item"
+                v-if="userStore.currentUser.role === 'SELLER'"
+              >
+                Kênh Người Bán
+              </router-link>
+              <router-link
+                to="/admin/dashboard"
+                class="dropdown-item"
+                v-if="userStore.currentUser.role === 'ADMIN'"
+              >
+                Kênh Quản Trị
+              </router-link>
               <div class="dropdown-divider"></div>
               <a href="#" @click.prevent="handleLogout" class="dropdown-item logout">Đăng xuất</a>
             </div>

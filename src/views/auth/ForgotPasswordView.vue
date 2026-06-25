@@ -5,6 +5,7 @@
         <h2>{{ step === 1 ? 'Quên Mật Khẩu' : (step === 2 ? 'Nhập Mã Xác Nhận' : 'Tạo Mật Khẩu Mới') }}</h2>
         <p>{{ step === 1 ? 'Nhập email của bạn để nhận mã khôi phục' : (step === 2 ? `Mã xác nhận đã được gửi đến ${email}` : 'Vui lòng nhập mật khẩu mới của bạn') }}</p>
       </div>
+      <div class="form-error" v-if="errorMsg">{{ errorMsg }}</div>
       
       <!-- Step 1: Email -->
       <form class="auth-form" @submit.prevent="handleSendOTP" v-if="step === 1">
@@ -60,51 +61,90 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+//sửa lại toàn bộ
+import { ref } from 'vue'
+import { authApi } from '../../api'
 
-const step = ref(1);
-const email = ref('');
-const otp = ref('');
-const newPassword = ref('');
-const confirmPassword = ref('');
+const step = ref(1)
+const email = ref('')
+const otp = ref('')
+const newPassword = ref('')
+const confirmPassword = ref('')
+const requestId = ref('')
 
-const isLoading = ref(false);
-const errorMsg = ref('');
-const successMsg = ref('');
+const isLoading = ref(false)
+const errorMsg = ref('')
+const successMsg = ref('')
 
-const handleSendOTP = () => {
-  isLoading.value = true;
-  setTimeout(() => {
-    isLoading.value = false;
-    step.value = 2;
-  }, 800);
-};
+const handleSendOTP = async () => {
+  errorMsg.value = ''
+  successMsg.value = ''
 
-const handleVerifyOTP = () => {
-  isLoading.value = true;
-  setTimeout(() => {
-    isLoading.value = false;
-    if (otp.value === '123456') {
-      step.value = 3;
-    } else {
-      alert('Mã OTP không hợp lệ! (Dùng mã giả lập: 123456)');
-    }
-  }, 800);
-};
+  try {
+    isLoading.value = true
 
-const handleResetPassword = () => {
-  errorMsg.value = '';
-  if (newPassword.value !== confirmPassword.value) {
-    errorMsg.value = 'Mật khẩu xác nhận không khớp!';
-    return;
+    const res = await authApi.forgotPassword(email.value)
+
+    requestId.value = res.requestId
+    localStorage.setItem('resetRequestId', res.requestId)
+
+    step.value = 2
+  } catch (err) {
+    errorMsg.value = err.message || 'Gửi OTP thất bại'
+  } finally {
+    isLoading.value = false
   }
-  
-  isLoading.value = true;
-  setTimeout(() => {
-    isLoading.value = false;
-    successMsg.value = 'Đổi mật khẩu thành công! Bạn có thể đăng nhập bằng mật khẩu mới.';
-  }, 1000);
-};
+}
+
+const handleVerifyOTP = async () => {
+  errorMsg.value = ''
+  successMsg.value = ''
+
+  try {
+    isLoading.value = true
+
+    const id = requestId.value || localStorage.getItem('resetRequestId')
+
+    await authApi.verifyOtp({
+      requestId: id,
+      otp: otp.value
+    })
+
+    step.value = 3
+  } catch (err) {
+    errorMsg.value = err.message || 'Mã OTP không hợp lệ'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const handleResetPassword = async () => {
+  errorMsg.value = ''
+  successMsg.value = ''
+
+  if (newPassword.value !== confirmPassword.value) {
+    errorMsg.value = 'Mật khẩu xác nhận không khớp!'
+    return
+  }
+
+  try {
+    isLoading.value = true
+
+    const id = requestId.value || localStorage.getItem('resetRequestId')
+
+    await authApi.resetPassword({
+      requestId: id,
+      newPassword: newPassword.value
+    })
+
+    localStorage.removeItem('resetRequestId')
+    successMsg.value = 'Đổi mật khẩu thành công! Bạn có thể đăng nhập bằng mật khẩu mới.'
+  } catch (err) {
+    errorMsg.value = err.message || 'Đổi mật khẩu thất bại'
+  } finally {
+    isLoading.value = false
+  }
+}
 </script>
 
 <style scoped>

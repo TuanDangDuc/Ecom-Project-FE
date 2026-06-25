@@ -2,10 +2,16 @@
   <div class="profile-layout container mt-4">
     <div class="sidebar">
       <div class="user-summary">
-        <div class="avatar"><img :src="userStore.currentUser?.avatarUrl" alt="" v-if="userStore.currentUser?.avatarUrl" /><span v-else>{{ userStore.currentUser?.fullName.charAt(0) }}</span></div>
+        <div class="avatar"><img :src="userStore.currentUser?.avatarUrl" alt="" v-if="userStore.currentUser?.avatarUrl" />
+          <span v-else>
+            {{ (userStore.currentUser?.fullName || userStore.currentUser?.username || 'U').charAt(0) }}
+          </span>
+        </div>
         <div class="info">
-          <div class="name">{{ userStore.currentUser?.fullName }}</div>
-          <div class="edit"><router-link to="/profile/addresses">Sửa hồ sơ</router-link></div>
+          <div class="name">
+            {{ userStore.currentUser?.fullName || userStore.currentUser?.username || 'Người dùng' }}
+          </div>
+          <div class="edit"><router-link to="/profile/account">Sửa hồ sơ</router-link></div>
         </div>
       </div>
       <ul class="nav-list">
@@ -26,9 +32,11 @@
         </li>
       </ul>
 
-      <div class="register-shop-box" v-if="!userStore.currentUser?.shopId">
+      <div class="register-shop-box" v-if="userStore.currentUser?.role === 'BUYER'">
         <p>Bạn chưa có cửa hàng?</p>
-        <button class="btn btn-outline btn-sm" @click="handleRegisterShop">Đăng ký bán hàng ngay</button>
+        <button class="btn btn-outline btn-sm" @click="handleRegisterShop">
+          Đăng ký bán hàng ngay
+        </button>
       </div>
     </div>
     <div class="main-content">
@@ -52,13 +60,8 @@ onMounted(() => {
 });
 
 const handleRegisterShop = () => {
-  const shopName = prompt("Nhập tên cửa hàng của bạn:");
-  if (shopName) {
-    userStore.registerShop(shopName);
-    alert("Đăng ký cửa hàng thành công! Đang chuyển đến Kênh người bán...");
-    router.push('/seller/dashboard');
-  }
-};
+  alert('Vui lòng liên hệ admin để nâng quyền SELLER trước khi tạo cửa hàng.')
+}
 </script>
 
 <style scoped>

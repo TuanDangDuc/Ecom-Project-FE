@@ -1,13 +1,24 @@
 <template>
   <div class="seller-layout container mt-4">
     <div class="sidebar">
-      <div class="shop-summary" v-if="shopStore.currentShop">
-        <div class="avatar"><img :src="shopStore.currentShop.avatarUrl" alt="" v-if="shopStore.currentShop.avatarUrl" /><span v-else>{{ shopStore.currentShop.name.charAt(0) }}</span></div>
+      <div class="shop-summary" v-if="shopStore.currentShop || shop">
+        <div class="avatar">
+          <img
+            :src="(shopStore.currentShop || shop).avatarUrl"
+            alt=""
+            v-if="(shopStore.currentShop || shop).avatarUrl"
+          />
+          <span v-else>
+            {{ ((shopStore.currentShop || shop).name || 'S').charAt(0) }}
+          </span>
+        </div>
+
         <div class="info">
-          <div class="name">{{ shopStore.currentShop.name }}</div>
+          <div class="name">{{ (shopStore.currentShop || shop).name }}</div>
           <div class="status">Cửa hàng của bạn</div>
         </div>
       </div>
+
       <ul class="nav-list">
         <li>
           <router-link to="/seller/dashboard" class="sidebar-link">
@@ -31,6 +42,7 @@
         </li>
       </ul>
     </div>
+
     <div class="main-content">
       <router-view />
     </div>
@@ -38,23 +50,45 @@
 </template>
 
 <script setup>
-import { useShopStore } from '../../stores/shop';
-import { useUserStore } from '../../stores/user';
-import { useRouter } from 'vue-router';
-import { onMounted } from 'vue';
+import { ref, onMounted } from 'vue'
+import { useShopStore } from '../../stores/shop'
+import { useUserStore } from '../../stores/user'
+import { useRouter } from 'vue-router'
+import { shopApi } from '../../api'
 
-const shopStore = useShopStore();
-const userStore = useUserStore();
-const router = useRouter();
+const shopStore = useShopStore()
+const userStore = useUserStore()
+const router = useRouter()
 
-onMounted(() => {
+const shop = ref(null)
+
+onMounted(async () => {
   if (!userStore.isLoggedIn) {
-    router.push('/login');
-  } else if (!userStore.currentUser.shopId) {
-    alert("Bạn chưa có cửa hàng!");
-    router.push('/');
+    router.push('/login')
+    return
   }
-});
+
+  if (userStore.currentUser?.role !== 'SELLER') {
+    alert('Bạn không có quyền truy cập kênh người bán!')
+    router.push('/')
+    return
+  }
+
+  try {
+    const userId = userStore.currentUser.id || Number(localStorage.getItem('userId'))
+    const res = await shopApi.getByUserId(userId)
+
+    const list = res.data || res.shops || res.result || []
+    const currentShop = Array.isArray(list) ? list[0] : list
+
+    if (currentShop && currentShop.id) {
+      shop.value = currentShop
+      shopStore.currentShop = currentShop
+    }
+  } catch (err) {
+    console.error('[Seller layout load shop]', err)
+  }
+})
 </script>
 
 <style scoped>

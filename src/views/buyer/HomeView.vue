@@ -55,17 +55,54 @@
 </template>
 
 <script setup>
-import { products } from '../../mock/data';
+import { ref, onMounted } from 'vue'
+import { productApi } from '../../api'
+
+const products = ref([])
+const loading = ref(false)
 
 const collections = [
-  { title: 'Laptop', image: 'https://picsum.photos/seed/laptop1/400/400' },
-  { title: 'Accessories', image: 'https://picsum.photos/seed/acc1/400/400' },
-  { title: 'Cameras', image: 'https://picsum.photos/seed/cam1/400/400' }
-];
+  { title: 'Laptop', image: 'https://picsum.photos/seed/laptop1/400/400', keyword: 'laptop' },
+  { title: 'Accessories', image: 'https://picsum.photos/seed/acc1/400/400', keyword: 'phụ kiện' },
+  { title: 'Cameras', image: 'https://picsum.photos/seed/cam1/400/400', keyword: 'camera' }
+]
+
+const normalizeProduct = (p) => ({
+  id: p.id,
+  name: p.name || 'Sản phẩm',
+  thumbnailUrl: p.thumbnailUrl || p.imageUrl || 'https://picsum.photos/seed/product/400/400',
+  basePrice: p.basePrice || p.price || 0,
+  ratingAverage: p.ratingAverage || 0,
+  shopId: p.shopId,
+  categoryId: p.categoryId,
+  productTypeId: p.productTypeId
+})
+
+const loadProducts = async () => {
+  try {
+    loading.value = true
+    const res = await productApi.getAll()
+
+    const list = res.data || res.products || res.result || res || []
+
+    products.value = Array.isArray(list)
+      ? list.map(normalizeProduct)
+      : []
+  } catch (err) {
+    console.error('[Load products]', err)
+    products.value = []
+  } finally {
+    loading.value = false
+  }
+}
 
 const formatPrice = (price) => {
-  return Math.round(price).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-};
+  return Math.round(Number(price) || 0)
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+}
+
+onMounted(loadProducts)
 </script>
 
 <style scoped>

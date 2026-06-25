@@ -10,7 +10,7 @@
         <div class="form-group">
           <label>Tên đăng nhập</label>
           <input type="text" v-model="username" placeholder="Nhập tên đăng nhập" required />
-          <span class="hint">Gợi ý: admin | seller | buyer</span>
+          <span class="hint">Nhập username đã đăng ký</span>
         </div>
         
         <div class="form-group">
@@ -19,7 +19,7 @@
             <router-link to="/forgot-password" class="forgot-link">Quên mật khẩu?</router-link>
           </div>
           <input type="password" v-model="password" placeholder="Nhập mật khẩu" required />
-          <span class="hint">Gợi ý: ts123</span>
+          <span class="hint">Nhập mật khẩu của tài khoản</span>
         </div>
         
         <div class="form-error" v-if="errorMsg">{{ errorMsg }}</div>
@@ -61,14 +61,15 @@ const handleLogin = async () => {
     
     if (success) {
       // Phân quyền điều hướng trang sau khi đăng nhập thành công
-      if (userStore.currentUser?.role === 'admin') {
-        router.push('/admin/dashboard');
-      } else {
-        if (userStore.currentUser?.shopId && shopStore.loadShop) {
-          shopStore.loadShop(userStore.currentUser.id);
+      const role = userStore.currentUser?.role
+
+        if (role === 'ADMIN') {
+          router.push('/admin/dashboard')
+        } else if (role === 'SELLER') {
+          router.push('/seller/dashboard')
+        } else {
+          router.push('/')
         }
-        router.push('/');
-      }
     } else {
       errorMsg.value = 'Sai tên đăng nhập hoặc mật khẩu!';
     }

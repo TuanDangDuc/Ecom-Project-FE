@@ -8,7 +8,7 @@
         <form @submit.prevent="saveProfile">
           <div class="form-group row">
             <label>Tên Đăng Nhập</label>
-            <div class="value">{{ user.userName }}</div>
+            <div class="value">{{ user.username || user.userName }}</div> 
           </div>
           
           <div class="form-group row">
@@ -22,16 +22,11 @@
           </div>
 
           <div class="form-group row">
-            <label>Số Điện Thoại</label>
-            <input type="tel" v-model="formData.phoneNumber" placeholder="0987..."/>
-          </div>
-
-          <div class="form-group row">
             <label>Giới Tính</label>
             <div class="radio-group">
-              <label><input type="radio" value="Nam" v-model="formData.sex"> Nam</label>
-              <label><input type="radio" value="Nữ" v-model="formData.sex"> Nữ</label>
-              <label><input type="radio" value="Khác" v-model="formData.sex"> Khác</label>
+              <label><input type="radio" value="MALE" v-model="formData.sex"> Nam</label>
+              <label><input type="radio" value="FEMALE" v-model="formData.sex"> Nữ</label>
+              <label><input type="radio" value="OTHER" v-model="formData.sex"> Khác</label>
             </div>
           </div>
 
@@ -75,71 +70,118 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-import { useUserStore } from '../../../stores/user';
+ //sửa toàn bộ lại script setup
+import { ref, onMounted, computed } from 'vue'
+import { useUserStore } from '../../../stores/user'
+import { userApi } from '../../../api'
 
-const userStore = useUserStore();
-const user = computed(() => userStore.currentUser);
+const userStore = useUserStore()
+const user = computed(() => userStore.currentUser)
 
 const formData = ref({
+  username: '',
   fullName: '',
   email: '',
-  phoneNumber: '',
   sex: '',
   dateOfBirth: '',
   avatarUrl: ''
-});
+})
 
-const isSaving = ref(false);
-const successMsg = ref('');
-const fileInputRef = ref(null);
+const isSaving = ref(false)
+const successMsg = ref('')
+const fileInputRef = ref(null)
 
-const triggerFileInput = () => fileInputRef.value?.click();
+const triggerFileInput = () => fileInputRef.value?.click()
 
 const onFileChange = (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+  const file = e.target.files[0]
+  if (!file) return
+
   if (file.size > 1024 * 1024) {
-    alert('File quá lớn! Vui lòng chọn ảnh dưới 1 MB.');
-    return;
+    alert('File quá lớn! Vui lòng chọn ảnh dưới 1 MB.')
+    return
   }
-  const reader = new FileReader();
+
+  const reader = new FileReader()
   reader.onload = (ev) => {
-    formData.value.avatarUrl = ev.target.result;
-  };
-  reader.readAsDataURL(file);
-  // Reset input để có thể chọn lại cùng file
-  e.target.value = '';
-};
-
-onMounted(() => {
-  if (user.value) {
-    formData.value.fullName = user.value.fullName || '';
-    formData.value.email = user.value.email || '';
-    formData.value.phoneNumber = user.value.phoneNumber || '';
-    formData.value.sex = user.value.sex || 'Nam';
-    formData.value.dateOfBirth = user.value.dateOfBirth || '';
-    formData.value.avatarUrl = user.value.avatarUrl || '';
+    formData.value.avatarUrl = ev.target.result
   }
-});
+  reader.readAsDataURL(file)
+  e.target.value = ''
+}
 
-const saveProfile = () => {
-  isSaving.value = true;
-  successMsg.value = '';
-  setTimeout(() => {
-    userStore.currentUser.fullName = formData.value.fullName;
-    userStore.currentUser.email = formData.value.email;
-    userStore.currentUser.phoneNumber = formData.value.phoneNumber;
-    userStore.currentUser.sex = formData.value.sex;
-    userStore.currentUser.dateOfBirth = formData.value.dateOfBirth;
-    userStore.currentUser.avatarUrl = formData.value.avatarUrl;
-    isSaving.value = false;
-    successMsg.value = 'Lưu thành công!';
-    setTimeout(() => successMsg.value = '', 3000);
-  }, 800);
-};
+onMounted(async () => {
+  let current = user.value
+
+  if (!current) {
+    const savedUser = localStorage.getItem('user')
+
+    if (savedUser) {
+      current = JSON.parse(savedUser)
+      userStore.currentUser = current
+    }
+  }
+
+  if (!current?.username && !current?.userName) return
+
+  formData.value = {
+    username: current.username || current.userName || '',
+    fullName: current.fullName || '',
+    email: current.email || '',
+    sex: current.sex || 'MALE',
+    dateOfBirth: current.dateOfBirth || '',
+    avatarUrl: current.avatarUrl || ''
+  }
+})
+
+const saveProfile = async () => {
+  try {
+    isSaving.value = true
+    successMsg.value = ''
+
+    const savedUser = JSON.parse(localStorage.getItem('user') || '{}')
+    const username =
+      formData.value.username ||
+      user.value?.username ||
+      user.value?.userName ||
+      savedUser.username ||
+      savedUser.userName
+
+    if (!username) {
+      alert('Không tìm thấy username để cập nhật.')
+      return
+    }
+
+    const payload = {
+      username,
+      email: formData.value.email,
+      fullName: formData.value.fullName,
+      sex: formData.value.sex,
+      dateOfBirth: formData.value.dateOfBirth,
+      avatarUrl: formData.value.avatarUrl
+    }
+
+    const res = await userApi.update(payload)
+
+    const updatedUser = {
+      ...savedUser,
+      ...user.value,
+      ...payload,
+      ...(res.data || res.user || {})
+    }
+
+    userStore.currentUser = updatedUser
+    localStorage.setItem('user', JSON.stringify(updatedUser))
+
+    successMsg.value = 'Lưu thành công!'
+    setTimeout(() => successMsg.value = '', 3000)
+  } catch (err) {
+    alert(err.message || 'Cập nhật thất bại')
+  } finally {
+    isSaving.value = false
+  }
+}
 </script>
-
 <style scoped>
 .section-title {
   font-size: 20px;

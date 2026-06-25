@@ -21,34 +21,65 @@
           <tbody>
             <tr v-for="user in usersList" :key="user.id">
               <td>#{{ user.id }}</td>
+
               <td>
                 <div class="user-info">
                   <div class="avatar">
                     <img :src="user.avatarUrl" v-if="user.avatarUrl" alt="Avatar">
-                    <span v-else>{{ user.fullName.charAt(0) }}</span>
+                    <span v-else>{{ (user.fullName || user.username || 'U').charAt(0) }}</span>
                   </div>
                   <div>
-                    <div class="name">{{ user.fullName }}</div>
-                    <div class="role" v-if="user.role === 'admin'">Admin</div>
+                    <div class="name">{{ user.fullName || user.username }}</div>
+                    <div class="role">{{ user.role }}</div>
                   </div>
                 </div>
               </td>
-              <td>{{ user.sex }}</td>
-              <td>{{ user.dateOfBirth }}</td>
+
+              <td>{{ user.sex || 'Chưa cập nhật' }}</td>
+
+              <td>{{ user.dateOfBirth || 'Chưa cập nhật' }}</td>
+
               <td>
-                <span class="status-badge" :class="user.accountStatus.toLowerCase()">
-                  {{ user.accountStatus }}
+                <span
+                  class="status-badge"
+                  :class="(user.accountStatus || user.status || 'ACTIVE').toLowerCase()"
+                >
+                  {{ user.accountStatus || user.status || 'ACTIVE' }}
                 </span>
               </td>
+
               <td>
-                <button 
-                  v-if="user.role !== 'admin'"
-                  class="btn btn-sm" 
-                  :class="user.accountStatus === 'ACTIVE' ? 'btn-danger' : 'btn-success'"
-                  @click="toggleStatus(user)"
-                >
-                  {{ user.accountStatus === 'ACTIVE' ? 'Khóa' : 'Mở Khóa' }}
-                </button>
+                <div class="action-group">
+                  <button
+                    v-if="user.role !== 'ADMIN'"
+                    class="btn btn-sm"
+                    :class="(user.accountStatus || user.status || 'ACTIVE') === 'ACTIVE'
+                      ? 'btn-danger'
+                      : 'btn-success'"
+                    @click="toggleStatus(user)"
+                  >
+                    {{ (user.accountStatus || user.status || 'ACTIVE') === 'ACTIVE'
+                      ? 'Khóa'
+                      : 'Mở Khóa' }}
+                  </button>
+
+                  <select
+                    class="role-select"
+                    :value="user.role"
+                    @change="changeRole(user, $event.target.value)"
+                  >
+                    <option value="BUYER">BUYER</option>
+                    <option value="SELLER">SELLER</option>
+                    <option value="ADMIN">ADMIN</option>
+                  </select>
+
+                  <button
+                    class="btn btn-sm btn-danger"
+                    @click="deleteUser(user)"
+                  >
+                    Xóa
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -59,24 +90,73 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { users } from '../../mock/data';
+//Sửa lại toàn bộ script setup
+import { ref, onMounted } from 'vue'
+import { userApi } from '../../api'
 
-const usersList = ref([]);
+const usersList = ref([])
+const page = ref(1)
+const limit = ref(10)
+const loading = ref(false)
 
-onMounted(() => {
-  usersList.value = [...users];
-});
+const loadUsers = async () => {
+  try {
+    loading.value = true
+    const res = await userApi.getAll(page.value, limit.value)
 
-const toggleStatus = (user) => {
-  const confirmMsg = user.accountStatus === 'ACTIVE' 
-    ? `Bạn có chắc muốn khóa tài khoản ${user.fullName}?` 
-    : `Bạn có chắc muốn mở khóa tài khoản ${user.fullName}?`;
-    
-  if (confirm(confirmMsg)) {
-    user.accountStatus = user.accountStatus === 'ACTIVE' ? 'BANNED' : 'ACTIVE';
+    usersList.value =
+      res.data?.data ||
+      res.data ||
+      res.users ||
+      []
+  } catch (err) {
+    alert(err.message || 'Không tải được danh sách user')
+  } finally {
+    loading.value = false
   }
-};
+}
+
+const toggleStatus = async (user) => {
+  const currentStatus = user.accountStatus || user.status || 'ACTIVE'
+  const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
+
+  const confirmMsg = newStatus === 'INACTIVE'
+    ? `Bạn có chắc muốn khóa tài khoản ${user.fullName || user.username || user.userName}?`
+    : `Bạn có chắc muốn mở khóa tài khoản ${user.fullName || user.username || user.userName}?`
+
+  if (!confirm(confirmMsg)) return
+
+  try {
+    await userApi.updateStatus(user.username || user.userName, newStatus)
+    await loadUsers()
+  } catch (err) {
+    alert(err.message || 'Cập nhật trạng thái thất bại')
+  }
+}
+
+const changeRole = async (user, role) => {
+  if (!confirm(`Đổi quyền ${user.username || user.userName} thành ${role}?`)) return
+
+  try {
+    await userApi.updateRole(user.username || user.userName, role)
+    await loadUsers()
+  } catch (err) {
+    alert(err.message || 'Đổi role thất bại')
+  }
+}
+
+const deleteUser = async (user) => {
+  if (!confirm(`Xóa user ${user.username || user.userName}?`)) return
+
+  try {
+    await userApi.deleteByUsername(user.username || user.userName)
+    await loadUsers()
+  } catch (err) {
+    alert(err.message || 'Xóa user thất bại')
+  }
+}
+
+onMounted(loadUsers)
 </script>
 
 <style scoped>
@@ -119,6 +199,10 @@ const toggleStatus = (user) => {
   font-weight: 600;
   color: var(--text-color);
   font-size: 14px;
+}
+
+.users-table td:last-child {
+  min-width: 260px;
 }
 
 .user-info {
@@ -171,7 +255,7 @@ const toggleStatus = (user) => {
   background: rgba(16, 185, 129, 0.1);
   color: #10B981;
 }
-.status-badge.banned {
+.status-badge.inactive {
   background: rgba(239, 68, 68, 0.1);
   color: #EF4444;
 }
@@ -200,4 +284,20 @@ const toggleStatus = (user) => {
   background: #10B981;
   color: var(--white);
 }
+
+
+.action-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.role-select {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  font-size: 13px;
+}
+
 </style>

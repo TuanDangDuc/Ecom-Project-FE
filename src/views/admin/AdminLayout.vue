@@ -27,6 +27,9 @@
         <router-link to="/" class="sidebar-link">
           Về Trang Chủ
         </router-link>
+        <button class="sidebar-link logout-btn" @click="handleLogout">
+          Đăng Xuất
+        </button>
       </div>
     </div>
     <div class="main-content">
@@ -36,6 +39,29 @@
 </template>
 
 <script setup>
+import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useUserStore } from '../../stores/user'
+
+const router = useRouter()
+const userStore = useUserStore()
+
+onMounted(() => {
+  if (!userStore.isLoggedIn) {
+    router.push('/login')
+    return
+  }
+
+  if (userStore.currentUser?.role !== 'ADMIN') {
+    alert('Bạn không có quyền truy cập trang quản trị!')
+    router.push('/')
+  }
+})
+
+const handleLogout = () => {
+  userStore.logout()
+  router.push('/login')
+}
 </script>
 
 <style scoped>
@@ -101,5 +127,16 @@
   flex: 1;
   padding: 32px;
   overflow-y: auto;
+}
+
+.logout-btn {
+  width: 100%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  margin-top: 8px;
+  color: #EF4444;
 }
 </style>

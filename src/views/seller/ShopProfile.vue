@@ -35,7 +35,7 @@
       </div>
 
       <div class="form-actions">
-        <button type="submit" class="btn btn-primary">Lưu Thay Đổi</button>
+        <button type="submit" class="btn btn-primary">{{ formData.id ? 'Lưu Thay Đổi' : 'Tạo Cửa Hàng' }}</button>
         <span class="success-msg" v-if="saved">✓ Đã lưu thành công!</span>
       </div>
     </form>
@@ -43,42 +43,96 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useShopStore } from '../../stores/shop';
+//Sửa lại toàn bộ script setup
+import { ref, onMounted } from 'vue'
+import { shopApi } from '../../api'
 
-const shopStore = useShopStore();
-const formData = ref(null);
-const saved = ref(false);
-const avatarInputRef = ref(null);
+const formData = ref({
+  id: null,
+  name: '',
+  description: '',
+  avatarUrl: '',
+  userId: null
+})
 
-onMounted(() => {
-  if (shopStore.currentShop) {
-    formData.value = { ...shopStore.currentShop };
+const saved = ref(false)
+const loading = ref(false)
+const avatarInputRef = ref(null)
+
+const triggerAvatarInput = () => avatarInputRef.value?.click()
+
+const loadShop = async () => {
+  try {
+    loading.value = true
+    const userId = localStorage.getItem('userId')
+    const res = await shopApi.getByUserId(userId)
+
+    const shop = Array.isArray(res.data) ? res.data[0] : res.data
+
+    if (shop) {
+      formData.value = {
+        id: shop.id,
+        name: shop.name || '',
+        description: shop.description || '',
+        avatarUrl: shop.avatarUrl || '',
+        userId: shop.userId || Number(userId)
+      }
+    } else {
+      formData.value.userId = Number(userId)
+    }
+  } catch (err) {
+    console.error(err)
+  } finally {
+    loading.value = false
   }
-});
-
-const triggerAvatarInput = () => avatarInputRef.value?.click();
+}
 
 const onAvatarChange = (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  if (file.size > 1024 * 1024) {
-    alert('File quá lớn! Vui lòng chọn ảnh dưới 1 MB.');
-    return;
-  }
-  const reader = new FileReader();
-  reader.onload = (ev) => { formData.value.avatarUrl = ev.target.result; };
-  reader.readAsDataURL(file);
-  e.target.value = '';
-};
+  const file = e.target.files[0]
+  if (!file) return
 
-const handleUpdate = () => {
-  if (formData.value) {
-    shopStore.updateShop(formData.value);
-    saved.value = true;
-    setTimeout(() => saved.value = false, 3000);
+  if (file.size > 1024 * 1024) {
+    alert('File quá lớn! Vui lòng chọn ảnh dưới 1 MB.')
+    return
   }
-};
+
+  const reader = new FileReader()
+  reader.onload = (ev) => {
+    formData.value.avatarUrl = ev.target.result
+  }
+  reader.readAsDataURL(file)
+  e.target.value = ''
+}
+
+const handleUpdate = async () => {
+  try {
+    if (formData.value.id) {
+      await shopApi.update({
+        id: formData.value.id,
+        name: formData.value.name,
+        description: formData.value.description,
+        avatarUrl: formData.value.avatarUrl
+      })
+    } else {
+      const userId = localStorage.getItem('userId')
+
+      await shopApi.create({
+        name: formData.value.name,
+        description: formData.value.description,
+        avatarUrl: formData.value.avatarUrl || 'default-shop-avatar.png',
+        userId: Number(userId)
+      })
+    }
+
+    saved.value = true
+    await loadShop()
+    setTimeout(() => saved.value = false, 3000)
+  } catch (err) {
+    alert(err.message || 'Lưu cửa hàng thất bại')
+  }
+}
+
+onMounted(loadShop)
 </script>
 
 <style scoped>

@@ -4,15 +4,15 @@
 //  Thay BASE_URL bằng địa chỉ backend thật khi có
 // ============================================================
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 
-// ── Helper gọi fetch có tự gắn token ────────────────────────
+
+// Sửa lại hết apiAuth, user, shop, address 
 async function request(method, path, body = null) {
-  const token = localStorage.getItem('token'); // hoặc lấy từ store tuỳ backend
-  const userId = localStorage.getItem('userId');
-  const userRole = localStorage.getItem('userRole');
+  const userId = localStorage.getItem('userId')
+  const userRole = localStorage.getItem('userRole')
 
-  const options = {
+  const res = await fetch(`${BASE_URL}${path}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
@@ -20,37 +20,80 @@ async function request(method, path, body = null) {
       ...(userRole ? { 'X-User-Role': userRole } : {}),
     },
     ...(body ? { body: JSON.stringify(body) } : {}),
-  };
+  })
 
-  const res = await fetch(`${BASE_URL}${path}`, options);
+  const data = await res.json().catch(() => null)
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(err.message || `HTTP ${res.status}`);
+    throw new Error(data?.message || `HTTP ${res.status}`)
   }
 
-  // 204 No Content → không có body
-  if (res.status === 204) return null;
-  return res.json();
+  return data
 }
-// ────────────────────────────────────────────────────────────
-//  AUTH API (Đăng nhập / Đăng ký)
-// ────────────────────────────────────────────────────────────
+
 export const authApi = {
-  // Gửi username & password lên Backend
-  // POST /login (Bạn nhớ sửa đường dẫn '/login' cho đúng với BE PHP của bạn nhé)
-  login(username, password) {
-    // Không dùng hàm request() ở đây vì lúc này chưa có token
-    return fetch(`${BASE_URL}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    }).then(r => {
-      if (!r.ok) throw new Error('Đăng nhập thất bại');
-      return r.json();
-    });
-  }
-};
+  login: (username, password) =>
+    request('POST', '/auth/login', { username, password }),
+
+  register: (payload) =>
+    request('POST', '/auth/register', payload),
+
+  forgotPassword: (email) =>
+    request('POST', '/auth/forgot-password', { email }),
+
+  verifyOtp: (payload) =>
+    request('POST', '/auth/verify-otp', payload),
+
+  resetPassword: (payload) =>
+    request('POST', '/auth/reset-password', payload),
+}
+
+export const userApi = {
+  getAll: (page = 1, limit = 10) =>
+    request('GET', `/user/getAllUser?page=${page}&limit=${limit}`),
+
+  getByUsername: (username) =>
+    request('GET', `/user/getUserByUsername?username=${username}`),
+
+  update: (payload) =>
+    request('PUT', '/user', payload),
+
+  deleteByUsername: (username) =>
+    request('DELETE', `/user/delete?username=${username}`),
+
+  updateStatus: (username, status) =>
+    request('PATCH', '/user/status', { username, status }),
+
+  updateRole: (username, role) =>
+    request('PATCH', '/user/role', { username, role }),
+}
+
+export const shopApi = {
+  create: (payload) => request('POST', '/shop', payload),
+  update: (payload) => request('PUT', '/shop', payload),
+  getByUserId: (userId) => request('GET', `/shop/user?userId=${userId}`),
+  getById: (id) => request('GET', `/shop/detail?id=${id}`),
+  delete: (id) => request('DELETE', `/shop?id=${id}`),
+  updateStatus: (id, status) => request('PATCH', '/shop/status', { id, status }),
+  updateRating: (id, ratingAverage) => request('PATCH', '/shop/rating', { id, ratingAverage }),
+}
+
+export const addressApi = {
+  create: (payload) => request('POST', '/address', payload),
+  update: (payload) => request('PUT', '/address', payload),
+  getByUserId: (userId) => request('GET', `/address/user?userId=${userId}`),
+  getById: (id) => request('GET', `/address/detail?id=${id}`),
+  delete: (id) => request('DELETE', `/address?id=${id}`),
+}
+
+export const productApi = {
+  getAll: () => request('GET', '/products'),
+  getById: (id) => request('GET', `/product/${id}`),
+  getByShopId: (shopId) => request('GET', `/shopProduct/${shopId}`),
+  create: (payload) => request('POST', '/product', payload),
+  update: (id, payload) => request('PUT', `/product/${id}`, payload),
+  delete: (id) => request('DELETE', `/product/${id}`),
+}
 // ────────────────────────────────────────────────────────────
 //  CART API  (bảng: carts, cartItem)
 // ────────────────────────────────────────────────────────────
@@ -119,43 +162,34 @@ export const orderApi = {
 //  REVIEW API  (bảng: reviews, reviewImages)
 // ────────────────────────────────────────────────────────────
 
+//Sửa lại toàn bộ reviewApi
 export const reviewApi = {
-  // Lấy review của một sản phẩm (hiển thị trong ProductView)
-  // GET /reviews?productId=X  →  [{ id, userId, ratingValue, comment, images, shopReply, ... }]
-  getByProduct(productId) {
-    return request('GET', `/reviews?productId=${productId}`);
-  },
+  createReview: (payload) =>
+    request('POST', '/reviews', payload),
 
-  createReview(payload) {
-    return request('POST', '/reviews', payload);
-  },
+  getByProduct: (productId) =>
+    request('GET', `/products/${productId}/reviews`),
 
-  // Cập nhật review đã có
-  // PUT /reviews/:reviewId
-  // body: { ratingValue, comment }
-  updateReview(reviewId, ratingValue, comment) {
-    return request('PUT', `/reviews/${reviewId}`, { ratingValue, comment });
-  },
+  uploadImages: (reviewId, payload) =>
+    request('POST', `/reviews/${reviewId}/images`, payload),
 
-  // Upload ảnh review (nếu cần)
-  // POST /reviews/:reviewId/images  (multipart/form-data)
-  uploadImages(reviewId, files) {
-    const userId = localStorage.getItem('userId');
-    const userRole = localStorage.getItem('userRole');
-    const formData = new FormData();
-    files.forEach(f => formData.append('images', f));
+  deleteImage: (imageId) =>
+    request('DELETE', `/review-images/${imageId}`)
+}
 
-    const headers = {};
-    if (userId) headers['X-User-Id'] = userId;
-    if (userRole) headers['X-User-Role'] = userRole;
+export const variantApi = {
+  getByProductId: (productId) =>
+    request('GET', `/products/${productId}/variants`),
 
-    return fetch(`${BASE_URL}/reviews/${reviewId}/images`, {
-      method: 'POST',
-      headers,
-      body: formData,
-    }).then(r => r.json());
-  } // <-- Đã đóng đúng ngoặc của hàm uploadImages
-}; // <-- Đã đóng đúng ngoặc của object reviewApi
+  create: (productId, payload) =>
+    request('POST', `/products/${productId}/variants`, payload),
+
+  update: (id, payload) =>
+    request('PUT', `/variants/${id}`, payload),
+
+  delete: (id) =>
+    request('DELETE', `/variants/${id}`)
+}
 
 // ────────────────────────────────────────────────────────────
 //  HELPER FUNCTIONS (CÁCH 1)
@@ -181,7 +215,7 @@ export const mapOrderStatus = (status) => {
     'PROCESSING': 'Đang xử lý',
     'SHIPPED': 'Đang giao hàng',
     'DELIVERED': 'Đã giao thành công',
-    'CANCELLED': 'Đã hủy',
+    'CANCELED': 'Đã hủy', //bỏ 1 chữ l cho khớp be nha
   };
 
   return statusMap[status] || status;

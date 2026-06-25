@@ -6,10 +6,10 @@
     </div>
 
     <div class="address-list">
-      <div class="address-card" v-for="addr in userStore.userAddresses" :key="addr.id">
+      <div class="address-card" v-for="addr in addresses" :key="addr.id">
         <div class="info-area">
           <div class="user-row">
-            <span class="name">{{ addr.fullName }}</span>
+            
             <span class="divider">|</span>
             <span class="phone">{{ addr.phoneNumber }}</span>
           </div>
@@ -17,7 +17,7 @@
           <div class="address-text">{{ addr.ward }}, {{ addr.district }}, {{ addr.province }}</div>
           <div class="badges">
             <span class="badge" v-if="addr.isDefault">Mặc định</span>
-            <span class="badge-type">{{ addr.AddressType }}</span>
+            <span class="badge-type">{{ addr.addressType }}</span>
           </div>
         </div>
         <div class="action-area">
@@ -25,7 +25,7 @@
             <button class="action-btn" @click="editAddress(addr)">Cập nhật</button>
             <button class="action-btn delete" @click="deleteAddress(addr.id)">Xóa</button>
           </div>
-          <button class="btn btn-outline btn-sm" :disabled="addr.isDefault" @click="userStore.setDefaultAddress(addr.id)">Thiết lập mặc định</button>
+          <button class="btn btn-outline btn-sm" :disabled="addr.isDefault" @click="setDefaultAddress(addr)">Thiết lập mặc định</button>
         </div>
       </div>
     </div>
@@ -36,7 +36,7 @@
         <h3>{{ isEditing ? 'Cập Nhật Địa Chỉ' : 'Thêm Địa Chỉ Mới' }}</h3>
         <form @submit.prevent="submitForm">
           <div class="form-row">
-            <input type="text" v-model="formData.fullName" placeholder="Họ và tên" required />
+    
             <input type="text" v-model="formData.phoneNumber" placeholder="Số điện thoại" required />
           </div>
           <div class="form-row">
@@ -50,8 +50,8 @@
             <input type="text" v-model="formData.specificAddress" placeholder="Địa chỉ cụ thể" required />
           </div>
           <div class="form-row options">
-            <label><input type="radio" v-model="formData.AddressType" value="Nhà riêng" /> Nhà riêng</label>
-            <label><input type="radio" v-model="formData.AddressType" value="Văn phòng" /> Văn phòng</label>
+            <label><input type="radio" v-model="formData.addressType" value="HOME" /> Nhà riêng</label>
+            <label><input type="radio" v-model="formData.addressType" value="OFFICE" /> Văn phòng</label>
           </div>
           <div class="form-row checkbox">
             <label><input type="checkbox" v-model="formData.isDefault" /> Đặt làm địa chỉ mặc định</label>
@@ -67,55 +67,160 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useUserStore } from '../../../stores/user';
+import { ref, onMounted } from 'vue'
+import { addressApi } from '../../../api'
 
-const userStore = useUserStore();
+const addresses = ref([])
+const showAddForm = ref(false)
+const isEditing = ref(false)
+const loading = ref(false)
 
-const showAddForm = ref(false);
-const isEditing = ref(false);
-const formData = ref(getEmptyForm());
+const formData = ref(getEmptyForm())
 
 function getEmptyForm() {
   return {
     id: null,
-    fullName: '',
     phoneNumber: '',
     province: '',
     district: '',
     ward: '',
     specificAddress: '',
-    AddressType: 'Nhà riêng',
-    isDefault: false
-  };
+    addressType: 'HOME',
+    isDefault: false,
+    city: '',
+    country: 'Vietnam'
+  }
+}
+
+const normalizeAddress = (addr) => ({
+  id: addr.id,
+  phoneNumber: addr.phoneNumber || '',
+  province: addr.province || '',
+  district: addr.district || '',
+  ward: addr.ward || '',
+  specificAddress: addr.specificAddress || '',
+  addressType: addr.addressType || 'HOME',
+  isDefault: !!addr.isDefault,
+  city: addr.city || '',
+  country: addr.country || 'Vietnam'
+})
+
+const loadAddresses = async () => {
+  try {
+    loading.value = true
+    const userId = Number(localStorage.getItem('userId'))
+
+    const res = await addressApi.getByUserId(userId)
+
+    const list = res.data || res.addresses || res.result || []
+    addresses.value = Array.isArray(list)
+      ? list.map(normalizeAddress)
+      : []
+  } catch (err) {
+    console.error('[Load addresses]', err)
+    addresses.value = []
+  } finally {
+    loading.value = false
+  }
 }
 
 const editAddress = (addr) => {
-  formData.value = { ...addr };
-  isEditing.value = true;
-  showAddForm.value = true;
-};
+  formData.value = normalizeAddress(addr)
+  isEditing.value = true
+  showAddForm.value = true
+}
 
 const closeForm = () => {
-  showAddForm.value = false;
-  isEditing.value = false;
-  formData.value = getEmptyForm();
-};
+  showAddForm.value = false
+  isEditing.value = false
+  formData.value = getEmptyForm()
+}
 
-const submitForm = () => {
-  if (isEditing.value) {
-    userStore.updateAddress(formData.value);
-  } else {
-    userStore.addAddress(formData.value);
-  }
-  closeForm();
-};
+const buildCreatePayload = () => {
+  const userId = Number(localStorage.getItem('userId'))
 
-const deleteAddress = (id) => {
-  if(confirm("Bạn có chắc chắn muốn xóa địa chỉ này?")) {
-    userStore.deleteAddress(id);
+  return {
+    province: formData.value.province,
+    district: formData.value.district,
+    ward: formData.value.ward,
+    specificAddress: formData.value.specificAddress,
+    isDefault: formData.value.isDefault,
+    addressType: formData.value.addressType,
+    phoneNumber: formData.value.phoneNumber,
+    city: formData.value.city,
+    country: formData.value.country,
+    userId
   }
-};
+}
+
+const buildUpdatePayload = () => {
+  return {
+    id: formData.value.id,
+    province: formData.value.province,
+    district: formData.value.district,
+    ward: formData.value.ward,
+    specificAddress: formData.value.specificAddress,
+    isDefault: formData.value.isDefault,
+    addressType: formData.value.addressType,
+    phoneNumber: formData.value.phoneNumber,
+    city: formData.value.city,
+    country: formData.value.country
+  }
+}
+
+const submitForm = async () => {
+  try {
+    if (!formData.value.province || !formData.value.district || !formData.value.specificAddress || !formData.value.phoneNumber) {
+      alert('Vui lòng nhập đầy đủ tỉnh/thành, quận/huyện, địa chỉ cụ thể và số điện thoại.')
+      return
+    }
+
+    if (isEditing.value) {
+      await addressApi.update(buildUpdatePayload())
+    } else {
+      await addressApi.create(buildCreatePayload())
+    }
+
+    await loadAddresses()
+    closeForm()
+  } catch (err) {
+    alert(err.message || 'Lưu địa chỉ thất bại')
+  }
+}
+
+const deleteAddress = async (id) => {
+  if (!confirm('Bạn có chắc chắn muốn xóa địa chỉ này?')) return
+
+  try {
+    await addressApi.delete(id)
+    await loadAddresses()
+  } catch (err) {
+    alert(err.message || 'Xóa địa chỉ thất bại')
+  }
+}
+
+const setDefaultAddress = async (addr) => {
+  try {
+    await addressApi.update({
+      id: addr.id,
+      province: addr.province,
+      district: addr.district,
+      ward: addr.ward,
+      specificAddress: addr.specificAddress,
+      isDefault: true,
+      addressType: addr.addressType,
+      phoneNumber: addr.phoneNumber,
+      city: addr.city,
+      country: addr.country
+    })
+
+    await loadAddresses()
+  } catch (err) {
+    alert(err.message || 'Thiết lập mặc định thất bại')
+  }
+}
+
+onMounted(loadAddresses)
 </script>
 
 <style scoped>

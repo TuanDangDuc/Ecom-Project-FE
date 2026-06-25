@@ -37,18 +37,30 @@
                 </div>
               </td>
               <td>
-                <span class="status-badge" :class="shop.shopStatus.toLowerCase()">
-                  {{ shop.shopStatus }}
+                <span
+                  class="status-badge"
+                  :class="(shop.shopStatus || shop.status || 'ACTIVE').toLowerCase()"
+                >
+                  {{ shop.shopStatus || shop.status || 'ACTIVE' }}
                 </span>
               </td>
               <td>
-                <button 
-                  class="btn btn-sm" 
-                  :class="shop.shopStatus === 'active' ? 'btn-danger' : 'btn-success'"
-                  @click="toggleStatus(shop)"
-                >
-                  {{ shop.shopStatus === 'active' ? 'Đình Chỉ' : 'Kích Hoạt' }}
-                </button>
+                <div class="action-group">
+                  <button
+                    class="btn btn-sm"
+                    :class="(shop.shopStatus || shop.status) === 'ACTIVE' ? 'btn-danger' : 'btn-success'"
+                    @click="toggleStatus(shop)"
+                  >
+                    {{ (shop.shopStatus || shop.status) === 'ACTIVE' ? 'Đình Chỉ' : 'Kích Hoạt' }}
+                  </button>
+
+                  <button
+                    class="btn btn-sm btn-danger"
+                    @click="deleteShop(shop)"
+                  >
+                    Xóa
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -59,26 +71,46 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { shops } from '../../mock/data';
+import { ref, onMounted } from 'vue'
+import { shops } from '../../mock/data'
+import { shopApi } from '../../api'
 
-const shopsList = ref([]);
+const shopsList = ref([])
 
 onMounted(() => {
-  shopsList.value = [...shops];
-});
+  shopsList.value = [...shops]
+})
 
-const toggleStatus = (shop) => {
-  const confirmMsg = shop.shopStatus === 'active' 
-    ? `Bạn có chắc muốn đình chỉ hoạt động cửa hàng ${shop.name}?` 
-    : `Bạn có chắc muốn kích hoạt lại cửa hàng ${shop.name}?`;
-    
-  if (confirm(confirmMsg)) {
-    shop.shopStatus = shop.shopStatus === 'active' ? 'suspended' : 'active';
+const toggleStatus = async (shop) => {
+  const currentStatus = shop.shopStatus || shop.status || 'ACTIVE'
+  const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
+
+  const confirmMsg = newStatus === 'INACTIVE'
+    ? `Bạn có chắc muốn đình chỉ cửa hàng ${shop.name}?`
+    : `Bạn có chắc muốn kích hoạt lại cửa hàng ${shop.name}?`
+
+  if (!confirm(confirmMsg)) return
+
+  try {
+    await shopApi.updateStatus(shop.id, newStatus)
+    shop.shopStatus = newStatus
+    shop.status = newStatus
+  } catch (err) {
+    alert(err.message || 'Cập nhật trạng thái shop thất bại')
   }
-};
-</script>
+}
 
+const deleteShop = async (shop) => {
+  if (!confirm(`Xóa cửa hàng ${shop.name}?`)) return
+
+  try {
+    await shopApi.delete(shop.id)
+    shopsList.value = shopsList.value.filter(s => s.id !== shop.id)
+  } catch (err) {
+    alert(err.message || 'Xóa shop thất bại')
+  }
+}
+</script>
 <style scoped>
 .page-header {
   margin-bottom: 32px;
@@ -162,17 +194,7 @@ const toggleStatus = (shop) => {
   color: #FBBF24;
 }
 
-.status-badge {
-  padding: 6px 12px;
-  border-radius: 99px;
-  font-size: 12px;
-  font-weight: 600;
-}
-.status-badge.active {
-  background: rgba(16, 185, 129, 0.1);
-  color: #10B981;
-}
-.status-badge.suspended {
+.status-badge.inactive {
   background: rgba(239, 68, 68, 0.1);
   color: #EF4444;
 }
@@ -200,5 +222,11 @@ const toggleStatus = (shop) => {
 .btn-success:hover {
   background: #10B981;
   color: var(--white);
+}
+
+.action-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 </style>

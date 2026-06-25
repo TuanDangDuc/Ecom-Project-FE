@@ -81,8 +81,10 @@ export const useCartStore = defineStore('cart', () => {
     const oldQty = item.quantity;
     item.quantity = quantity; // cập nhật UI ngay
 
+    //BE route: PUT /api/cart/items/{cartItemId} và DELETE /api/cart/items/{cartItemId} 
+    //k truyền userId trong path
     try {
-      const res = await cartApi.updateItem(userId, itemId, quantity);
+      const res = await cartApi.updateItem(itemId, quantity);//sửa updateItem bỏ userId
       if (!res.success) {
         item.quantity = oldQty; // rollback
         alert(res.message || 'Cập nhật thất bại');
@@ -102,7 +104,7 @@ export const useCartStore = defineStore('cart', () => {
     items.value = items.value.filter(i => i.id !== itemId);
 
     try {
-      const res = await cartApi.removeItem(userId, itemId);
+      const res = await cartApi.removeItem(itemId);// sửa removeItem bỏ userId
       if (!res.success) {
         items.value = backup;
         alert(res.message || 'Xoá thất bại');
