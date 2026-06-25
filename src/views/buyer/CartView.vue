@@ -14,10 +14,13 @@
         <div class="cart-items">
           <div class="cart-item" v-for="item in cartStore.items" :key="item.id">
             <div class="col-product item-info">
-              <img :src="item.productThumbnail" :alt="item.productName">
+              <img v-if="item.productThumbnail" :src="item.productThumbnail" :alt="item.productName">
+              <div v-else class="image-placeholder">{{ productInitial(item.productName) }}</div>
               <div class="details">
-                <div class="name">{{ item.productName }}</div>
-                <div class="variant">Phân loại: {{ item.variantOptions }}</div>
+                <div class="name">{{ item.productName || 'Sản phẩm' }}</div>
+                <div class="variant" v-if="hasVariantOptions(item.variantOptions)">
+                  Phân loại: {{ formatVariantOptions(item.variantOptions) }}
+                </div>
               </div>
             </div>
             <div class="col-price">₫{{ formatPrice(itemPrice(item)) }}</div>
@@ -65,6 +68,7 @@
 import { onMounted } from 'vue';
 import { useCartStore } from '../../stores/cart';
 import { useRouter } from 'vue-router';
+import { formatVariantOptions } from '../../api/index.js';
 
 const cartStore = useCartStore();
 const router = useRouter();
@@ -75,6 +79,14 @@ onMounted(() => {
 
 const itemPrice = (item) => {
   return Number(item.currentPrice ?? item.priceAtAdded ?? item.price ?? 0);
+};
+
+const hasVariantOptions = (options) => {
+  return Array.isArray(options) ? options.length > 0 : !!options;
+};
+
+const productInitial = (name) => {
+  return (name || 'S').trim().charAt(0).toUpperCase();
 };
 
 const formatPrice = (price) => {
@@ -152,6 +164,19 @@ const updateQty = (item, newQty) => {
   object-fit: cover;
   border-radius: var(--radius-sm);
   box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+}
+.image-placeholder {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: #EEF2F7;
+  color: var(--text-light);
+  font-weight: 700;
+  font-size: 24px;
 }
 .item-info .details {
   display: flex;
