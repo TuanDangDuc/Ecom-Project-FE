@@ -8,15 +8,17 @@
             <h3 class="section-title">Thông Tin Giao Hàng</h3>
             <router-link to="/profile/addresses" class="btn btn-outline btn-sm">Thay đổi</router-link>
           </div>
-          <div class="address-box" v-if="defaultAddress">
+          <div class="address-box loading" v-if="isLoadingAddresses">
+            Đang tải địa chỉ giao hàng...
+          </div>
+          <div class="address-box" v-else-if="defaultAddress">
             <div class="user-info">
-              <span class="name">{{ defaultAddress.fullName }}</span>
+              <span class="name">{{ recipientName }}</span>
               <span class="phone">{{ defaultAddress.phoneNumber }}</span>
             </div>
             <div class="address-detail">
-              <span class="badge-default">{{ defaultAddress.AddressType }}</span>
-              {{ defaultAddress.specificAddress }}, {{ defaultAddress.ward }},
-              {{ defaultAddress.district }}, {{ defaultAddress.province }}
+              <span class="badge-default">{{ addressTypeLabel(defaultAddress.addressType) }}</span>
+              <span>{{ shippingAddressText }}</span>
             </div>
           </div>
           <div class="address-box empty" v-else>
@@ -42,19 +44,20 @@
           <div class="order-items">
             <div class="cart-item" v-for="item in cartStore.items" :key="item.id">
               <div class="item-image">
-                <img :src="item.productThumbnail" :alt="item.productName">
+                <img v-if="item.productThumbnail" :src="item.productThumbnail" :alt="item.productName">
+                <div v-else class="image-placeholder">{{ productInitial(item.productName) }}</div>
               </div>
               <div class="item-details">
-                <div class="name">{{ item.productName }}</div>
-                <div class="variant" v-if="item.variantOptions?.length">
+                <div class="name">{{ item.productName || 'Sản phẩm' }}</div>
+                <div class="variant" v-if="hasVariantOptions(item.variantOptions)">
                   Loại: {{ formatVariantOptions(item.variantOptions) }}
                 </div>
               </div>
               <div class="item-price-qty">
-                <div class="price">₫{{ formatPrice(item.currentPrice) }}</div>
+                <div class="price">₫{{ formatPrice(itemPrice(item)) }}</div>
                 <div class="qty">x{{ item.quantity }}</div>
               </div>
-              <div class="item-total">₫{{ formatPrice(item.currentPrice * item.quantity) }}</div>
+              <div class="item-total">₫{{ formatPrice(itemPrice(item) * item.quantity) }}</div>
             </div>
           </div>
         </div>
@@ -83,7 +86,7 @@
           <button
             class="btn btn-primary btn-place-order"
             @click="placeOrder"
-            :disabled="!defaultAddress || cartStore.items.length === 0 || isOrdering"
+            :disabled="isLoadingAddresses || !defaultAddress || cartStore.items.length === 0 || isOrdering"
           >
             {{ isOrdering ? 'Đang xử lý...' : 'Hoàn Tất Đặt Hàng' }}
           </button>
@@ -99,14 +102,16 @@ import { computed, onMounted, ref } from 'vue';
 import { useCartStore } from '../../stores/cart';
 import { useUserStore } from '../../stores/user';
 import { useRouter } from 'vue-router';
-import { orderApi, formatVariantOptions } from '../../api/index.js';
+import { addressApi, orderApi, formatVariantOptions } from '../../api/index.js';
 
 const cartStore = useCartStore();
 const userStore = useUserStore();
 const router = useRouter();
 
 const isOrdering = ref(false);
+const isLoadingAddresses = ref(false);
 const orderNote = ref('');
+const addresses = ref([]);
 
 onMounted(async () => {
   if (!userStore.isLoggedIn) {
@@ -118,11 +123,49 @@ onMounted(async () => {
   if (cartStore.items.length === 0) {
     await cartStore.fetchCart();
   }
+  await fetchAddresses();
 });
 
 const defaultAddress = computed(() =>
-  userStore.userAddresses.find(a => a.isDefault) || userStore.userAddresses[0] || null
+  addresses.value.find(a => a.isDefault) || addresses.value[0] || null
 );
+
+const recipientName = computed(() =>
+  defaultAddress.value?.fullName ||
+  userStore.currentUser?.fullName ||
+  userStore.currentUser?.username ||
+  'Khach hang'
+);
+
+const shippingAddressText = computed(() => {
+  if (!defaultAddress.value) return '';
+  return [
+    defaultAddress.value.specificAddress,
+    defaultAddress.value.ward,
+    defaultAddress.value.district,
+    defaultAddress.value.province,
+  ].filter(Boolean).join(', ');
+});
+
+const fetchAddresses = async () => {
+  const userId = userStore.currentUser?.id;
+  if (!userId) {
+    addresses.value = [];
+    return;
+  }
+
+  try {
+    isLoadingAddresses.value = true;
+    const res = await addressApi.getByUserId(userId);
+    const list = res.data || res.addresses || res.result || [];
+    addresses.value = Array.isArray(list) ? list : [];
+  } catch (e) {
+    console.error('[Checkout] fetchAddresses:', e);
+    addresses.value = [];
+  } finally {
+    isLoadingAddresses.value = false;
+  }
+};
 
 const estimatedTotal = computed(() => {
   const shipping = cartStore.totalCost > 500000 ? 0 : 30000;
@@ -131,7 +174,27 @@ const estimatedTotal = computed(() => {
 
 const formatPrice = (price) => {
   if (!price && price !== 0) return '0';
-  return Math.round(price).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return Math.round(Number(price) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+};
+
+const itemPrice = (item) => {
+  return Number(item.currentPrice ?? item.priceAtAdded ?? item.price ?? 0);
+};
+
+const hasVariantOptions = (options) => {
+  return Array.isArray(options) ? options.length > 0 : !!options;
+};
+
+const productInitial = (name) => {
+  return (name || 'S').trim().charAt(0).toUpperCase();
+};
+
+const addressTypeLabel = (type) => {
+  const labels = {
+    HOME: 'Nhà riêng',
+    OFFICE: 'Văn phòng',
+  };
+  return labels[type] || type || 'Địa chỉ';
 };
 
 // ── Đặt hàng ────────────────────────────────────────────────
@@ -147,12 +210,10 @@ const placeOrder = async () => {
 
   isOrdering.value = true;
   try {
-    const userId = userStore.currentUser.id;
-
     // BE cần: recipientName, recipientPhone, note, shippingAddressId, cartItemIds[]
     // Không gửi items/price — BE tự lấy từ cart trong DB
     const res = await orderApi.placeOrder({
-      recipientName: defaultAddress.value.fullName,
+      recipientName: recipientName.value,
       recipientPhone: defaultAddress.value.phoneNumber,
       note: orderNote.value,
       shippingAddressId: defaultAddress.value.id,
@@ -190,18 +251,30 @@ const placeOrder = async () => {
 }
 .note-input:focus { border-color: var(--primary-color); }
 .address-box { background: #F9FAFB; border: 1px solid var(--border-color); padding: 20px; border-radius: var(--radius-md); }
+.address-box.loading { color: var(--text-light); text-align: center; }
 .address-box.empty { color: #EF4444; text-align: center; background: #FEF2F2; border-color: #FCA5A5; }
 .address-box.empty a { font-weight: bold; text-decoration: underline; }
 .user-info { margin-bottom: 10px; font-size: 16px; }
 .user-info .name { font-weight: 600; color: var(--text-dark); margin-right: 12px; }
 .user-info .phone { color: var(--text-color); }
-.address-detail { color: var(--text-color); line-height: 1.5; display: flex; align-items: center; gap: 12px; }
+.address-detail { color: var(--text-color); line-height: 1.5; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .badge-default { background: rgba(16,185,129,0.1); color: var(--success); padding: 4px 8px; font-size: 12px; font-weight: 600; border-radius: 4px; }
 .order-items { display: flex; flex-direction: column; }
 .cart-item { display: flex; align-items: center; padding: 20px 0; border-bottom: 1px solid var(--border-color); }
 .cart-item:last-child { border-bottom: none; padding-bottom: 0; }
 .item-image { width: 64px; height: 64px; border-radius: var(--radius-sm); overflow: hidden; margin-right: 16px; }
 .item-image img { width: 100%; height: 100%; object-fit: cover; }
+.image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #EEF2F7;
+  color: var(--text-light);
+  font-weight: 700;
+  font-size: 20px;
+}
 .item-details { flex: 1; }
 .item-details .name { font-size: 15px; font-weight: 500; color: var(--text-dark); margin-bottom: 4px; }
 .item-details .variant { font-size: 13px; color: var(--text-light); }

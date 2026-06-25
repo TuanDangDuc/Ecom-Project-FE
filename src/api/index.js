@@ -212,9 +212,9 @@ export const mapOrderStatus = (status) => {
   
   const statusMap = {
     'PENDING': 'Chờ xác nhận',
-    'PROCESSING': 'Đang xử lý',
-    'SHIPPED': 'Đang giao hàng',
-    'DELIVERED': 'Đã giao thành công',
+    'CONFIRMED': 'Đã xác nhận',
+    'SHIPPING': 'Đang giao hàng',
+    'COMPLETED': 'Đã giao thành công',
     'CANCELED': 'Đã hủy', //bỏ 1 chữ l cho khớp be nha
   };
 
