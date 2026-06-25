@@ -191,6 +191,27 @@ export const variantApi = {
     request('DELETE', `/variants/${id}`)
 }
 
+export const categoryApi = {
+  getAll: () => request('GET', '/categories'),
+  create: (payload) =>
+  request('POST', '/categories', payload),
+  
+}
+
+export const productTypeApi = {
+    getAll: () => request('GET', '/product-types'),
+    create: (payload) =>
+    request('POST', '/product-types', payload),
+}
+
+export const productImageApi = {
+  addToVariant: (variantId, payload) =>
+  request('POST', `/variants/${variantId}/images`, payload),
+  delete: (id) =>
+  request('DELETE', `/product-images/${id}`),
+  
+}
+
 // ────────────────────────────────────────────────────────────
 //  HELPER FUNCTIONS (CÁCH 1)
 // ────────────────────────────────────────────────────────────
