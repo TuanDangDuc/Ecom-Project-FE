@@ -40,12 +40,8 @@
               @click="setPresetPrice(preset)"
             >{{ preset.label }}</button>
           </div>
-          <div class="price-inputs">
-            <input type="number" placeholder="Từ ₫" v-model.number="minPrice" min="0">
-            <span class="dash">—</span>
-            <input type="number" placeholder="Đến ₫" v-model.number="maxPrice" min="0">
-          </div>
         </div>
+
 
         <!-- Rating -->
         <div class="filter-group">
@@ -138,12 +134,10 @@ const selectedCategories = ref([]);
 const minPrice = ref(null);
 const maxPrice = ref(null);
 const minRating = ref(0);
-const sortBy = ref('relevant');
+const sortBy = ref('newest');
 
 const sortOptions = [
-  { label: 'Liên quan', value: 'relevant' },
   { label: 'Mới nhất', value: 'newest' },
-  { label: 'Bán chạy', value: 'popular' },
   { label: 'Giá tăng dần', value: 'price_asc' },
   { label: 'Giá giảm dần', value: 'price_desc' },
 ];
@@ -197,7 +191,7 @@ const resetFilters = () => {
   minPrice.value = null;
   maxPrice.value = null;
   minRating.value = 0;
-  sortBy.value = 'relevant';
+  sortBy.value = 'newest';
 };
 
 const formatPrice = (price) => {

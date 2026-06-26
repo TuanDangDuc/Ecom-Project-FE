@@ -4,8 +4,11 @@
   <header class="header">
     <div class="container header-inner">
       <div class="logo">
-        <router-link to="/">
-          <span class="logo-text">ShopLite<span class="logo-dot">.</span></span>
+        <router-link to="/" class="logo-link" title="Về Trang Chủ">
+          <div class="logo-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+          </div>
+          <span class="logo-text">Ecom<span class="logo-dot">.</span></span>
         </router-link>
       </div>
 
@@ -74,7 +77,7 @@
   <nav class="navbar">
     <div class="container navbar-inner">
       <router-link to="/" class="nav-link" :class="{ active: $route.path === '/' }">Trang Chủ</router-link>
-      <router-link to="/search" class="nav-link">Hot Deals</router-link>
+
       <router-link :to="`/search?keyword=điện thoại`" class="nav-link">Điện Thoại</router-link>
       <router-link :to="`/search?keyword=laptop`" class="nav-link">Laptop</router-link>
       <router-link :to="`/search?keyword=thời trang`" class="nav-link">Thời Trang</router-link>
@@ -138,11 +141,33 @@ const handleLogout = () => {
 }
 
 /* Logo */
+.logo-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+.logo-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--primary-color);
+  color: #fff;
+  border-radius: 12px;
+  transform: rotate(-5deg);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.logo-link:hover .logo-icon {
+  transform: rotate(0deg) scale(1.1);
+}
 .logo-text {
-  font-size: 26px;
-  font-weight: 800;
+  font-size: 28px;
+  font-weight: 900;
   color: var(--text-dark);
-  letter-spacing: -0.5px;
+  letter-spacing: -1px;
   font-family: 'Inter', sans-serif;
 }
 .logo-dot { color: var(--primary-color); }

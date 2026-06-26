@@ -167,7 +167,7 @@ const saveProfile = async () => {
       ...savedUser,
       ...user.value,
       ...payload,
-      ...(res.data || res.user || {})
+      ...(res?.data || res?.user || {})
     }
 
     userStore.currentUser = updatedUser

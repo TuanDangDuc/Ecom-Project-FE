@@ -1,6 +1,6 @@
 <template>
   <div class="app-wrapper">
-    <AppHeader v-if="!isDashboardLayout" />
+    <AppHeader />
     <main class="main-content">
       <router-view />
     </main>

@@ -41,6 +41,12 @@
           </router-link>
         </li>
       </ul>
+
+      <div class="sidebar-footer">
+        <router-link to="/" class="sidebar-link back-home">
+          ← Về Trang Chính
+        </router-link>
+      </div>
     </div>
 
     <div class="main-content">
@@ -92,80 +98,135 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.mt-4 { margin-top: 2rem; }
 .seller-layout {
   display: flex;
-  gap: 24px;
+  gap: 30px;
+  max-width: 1200px;
+  margin: 40px auto;
+  padding: 0 20px;
+  min-height: calc(100vh - 100px);
 }
+
 .sidebar {
-  width: 250px;
+  width: 280px;
+  background: var(--white);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+  border: 1px solid rgba(0,0,0,0.03);
+  display: flex;
+  flex-direction: column;
 }
+
 .shop-summary {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--border-color);
-  margin-bottom: 20px;
+  gap: 16px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 24px;
 }
+
 .avatar {
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  background: var(--primary-gradient);
+  background: linear-gradient(135deg, #1e293b, #0f172a);
   color: var(--white);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
-  font-weight: 600;
+  font-size: 22px;
+  font-weight: 700;
   overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
+
 .avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
+
 .info .name {
-  font-weight: 600;
-  color: var(--text-dark);
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 4px;
 }
+
 .info .status {
   font-size: 13px;
-  color: var(--text-light);
+  color: #10b981;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
+
+.info .status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: #10b981;
+  border-radius: 50%;
+}
+
 .nav-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex: 1;
 }
+
 .sidebar-link {
   display: flex;
   align-items: center;
-  padding: 14px 20px;
-  color: var(--text-color);
-  font-weight: 500;
-  border-radius: var(--radius-sm);
-  transition: var(--transition-fast);
-  border-left: 4px solid transparent;
-}
-.sidebar-link:hover {
-  background: var(--bg-color);
-  color: var(--primary-color);
-  border-left-color: rgba(37, 99, 235, 0.3);
-}
-.sidebar-link.router-link-active {
-  background: rgba(37, 99, 235, 0.05);
-  color: var(--primary-color);
+  padding: 12px 16px;
+  color: #475569;
+  font-size: 14px;
   font-weight: 600;
-  border-left-color: var(--primary-color);
+  border-radius: 12px;
+  transition: all 0.2s ease;
 }
+
+.sidebar-link:hover {
+  background: #f8fafc;
+  color: #0f172a;
+  transform: translateX(4px);
+}
+
+.sidebar-link.router-link-active {
+  background: #0f172a;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+}
+
+.sidebar-footer {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.back-home {
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.back-home:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  transform: translateX(-4px);
+}
+
 .main-content {
   flex: 1;
-  background: var(--white);
-  border-radius: var(--radius-lg);
-  padding: 30px;
-  box-shadow: var(--shadow-sm);
-  min-height: 500px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 40px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+  border: 1px solid rgba(0,0,0,0.03);
+  min-height: 600px;
+  overflow: hidden;
 }
 </style>
