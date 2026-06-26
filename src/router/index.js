@@ -26,15 +26,12 @@ import AdminLayout from '../views/admin/AdminLayout.vue';
 import AdminDashboard from '../views/admin/Dashboard.vue';
 import AdminUsers from '../views/admin/Users.vue';
 import AdminShops from '../views/admin/Shops.vue';
+import AdminCategories from '../views/admin/Categories.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   scrollBehavior(to, from, savedPosition) {
-    if (savedPosition) {
-      return savedPosition;
-    } else {
-      return { top: 0 };
-    }
+    return savedPosition ?? { top: 0 };
   },
   routes: [
     { path: '/', name: 'home', component: HomeView },
@@ -47,8 +44,8 @@ const router = createRouter({
     { path: '/register', name: 'register', component: RegisterView },
     { path: '/forgot-password', name: 'forgot-password', component: ForgotPasswordView },
     { path: '/verify-email', name: 'verify-email', component: VerifyEmailView },
-    { 
-      path: '/profile', 
+    {
+      path: '/profile',
       component: ProfileView,
       meta: { requiresAuth: true },
       children: [
@@ -67,6 +64,7 @@ const router = createRouter({
         { path: 'orders', component: SellerOrdersView },
         { path: 'products', component: ProductsView },
         { path: 'products/add', component: ProductFormView },
+        { path: 'products/edit/:id', component: ProductFormView }, // Edit route
         { path: 'profile', component: ShopProfileView },
         { path: '', redirect: '/seller/dashboard' }
       ]
@@ -79,6 +77,7 @@ const router = createRouter({
         { path: 'dashboard', component: AdminDashboard },
         { path: 'users', component: AdminUsers },
         { path: 'shops', component: AdminShops },
+        { path: 'categories', component: AdminCategories }, // NEW
         { path: '', redirect: '/admin/dashboard' }
       ]
     }
@@ -86,19 +85,18 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
-  const userStore = useUserStore()
-
+  const userStore = useUserStore();
   if (to.meta.requiresAuth && !userStore.isLoggedIn) {
-    next('/login')
+    next('/login');
   } else if (to.meta.requiresSeller && userStore.currentUser?.role !== 'SELLER') {
-    alert('Bạn không có quyền truy cập trang người bán!')
-    next('/')
+    alert('Bạn không có quyền truy cập trang người bán!');
+    next('/');
   } else if (to.meta.requiresAdmin && userStore.currentUser?.role !== 'ADMIN') {
-    alert('Bạn không có quyền truy cập trang quản trị!')
-    next('/')
+    alert('Bạn không có quyền truy cập trang quản trị!');
+    next('/');
   } else {
-    next()
+    next();
   }
-})
+});
 
 export default router;

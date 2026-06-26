@@ -22,6 +22,11 @@
             Quản Lý Cửa Hàng
           </router-link>
         </li>
+        <li>
+          <router-link to="/admin/categories" class="sidebar-link">
+            Danh Mục & Loại SP
+          </router-link>
+        </li>
       </ul>
       <div class="sidebar-footer">
         <router-link to="/" class="sidebar-link">
