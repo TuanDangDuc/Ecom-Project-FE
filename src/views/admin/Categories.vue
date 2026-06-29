@@ -3,7 +3,6 @@
     <div class="page-header">
       <div>
         <h1 class="page-title">Quản Lý Danh Mục &amp; Loại Sản Phẩm</h1>
-        <p class="subtitle">Thêm, chỉnh sửa, xóa các danh mục và loại sản phẩm trên hệ thống</p>
       </div>
     </div>
 
@@ -11,7 +10,7 @@
       <!-- CATEGORIES -->
       <div class="card">
         <div class="card-header">
-          <h2>Danh Mục (Category)</h2>
+          <h2>Danh Mục </h2>
           <button class="btn btn-primary btn-sm" @click="openCreateCat">+ Thêm</button>
         </div>
 
@@ -47,7 +46,7 @@
       <!-- PRODUCT TYPES -->
       <div class="card">
         <div class="card-header">
-          <h2>Loại Sản Phẩm (ProductType)</h2>
+          <h2>Loại Sản Phẩm </h2>
           <button class="btn btn-primary btn-sm" @click="openCreateType">+ Thêm</button>
         </div>
 
