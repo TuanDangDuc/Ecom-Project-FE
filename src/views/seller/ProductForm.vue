@@ -30,29 +30,21 @@
           <!-- Danh mục -->
           <div class="form-group">
             <label>Danh mục *</label>
-            <div class="select-with-add">
-              <select v-model="product.categoryId" required>
-                <option value="" disabled>-- Chọn danh mục --</option>
-                <option v-for="cat in productStore.categories" :key="cat.id" :value="cat.id">
-                  {{ cat.name }}
-                </option>
-              </select>
-              <button type="button" class="btn-add-inline" @click="showAddCategoryModal = true" title="Thêm danh mục mới">+</button>
-            </div>
+            <SearchableSelect 
+              v-model="product.categoryId" 
+              :options="productStore.categories" 
+              placeholder="-- Chọn danh mục --" 
+            />
           </div>
 
           <!-- Loại sản phẩm -->
           <div class="form-group">
             <label>Loại sản phẩm</label>
-            <div class="select-with-add">
-              <select v-model="product.typeId">
-                <option value="">-- Không chọn --</option>
-                <option v-for="pt in productStore.productTypes" :key="pt.id" :value="pt.id">
-                  {{ pt.name }}
-                </option>
-              </select>
-              <button type="button" class="btn-add-inline" @click="showAddTypeModal = true" title="Thêm loại mới">+</button>
-            </div>
+            <SearchableSelect 
+              v-model="product.typeId" 
+              :options="productStore.productTypes" 
+              placeholder="-- Không chọn --" 
+            />
           </div>
 
           <!-- Giá cơ bản -->
@@ -65,21 +57,24 @@
         <!-- Thumbnail -->
         <div class="form-group">
           <label>Ảnh đại diện sản phẩm</label>
-          <div class="image-upload-zone" @click="triggerThumbInput" :class="{ 'has-image': product.thumbnailUrl }">
-            <img :src="product.thumbnailUrl" alt="Preview" v-if="product.thumbnailUrl" class="thumb-preview">
+          <div class="image-upload-zone" @click="!isUploading && triggerThumbInput()" :class="{ 'has-image': product.thumbnailUrl, 'uploading': isUploading }">
+            <!-- Đang upload -->
+            <div class="upload-loading" v-if="isUploading">
+              <div class="upload-spinner"></div>
+              <p>Đang tải ảnh lên...</p>
+            </div>
+            <img :src="product.thumbnailUrl" alt="Preview" v-else-if="product.thumbnailUrl" class="thumb-preview">
             <div class="upload-placeholder" v-else>
               <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
               </svg>
               <p>Bấm để chọn ảnh</p>
-              <span>URL hoặc tải lên JPEG, PNG · Tối đa 2 MB</span>
+              <span>JPEG, PNG, WebP · Tối đa 5 MB</span>
             </div>
-            <div class="upload-overlay" v-if="product.thumbnailUrl"><span>Đổi ảnh</span></div>
+            <div class="upload-overlay" v-if="product.thumbnailUrl && !isUploading"><span>Đổi ảnh</span></div>
           </div>
           <input ref="thumbInputRef" type="file" accept="image/jpeg,image/png,image/webp" style="display:none" @change="onThumbChange">
-          <div class="url-input-row">
-            <input type="url" v-model="product.thumbnailUrl" placeholder="Hoặc dán URL ảnh vào đây..." />
-          </div>
+
         </div>
       </div>
 
@@ -112,13 +107,21 @@
             <!-- Ảnh biến thể -->
             <div class="variant-images">
               <label class="section-label">Ảnh biến thể</label>
-              <div class="image-url-list">
-                <div class="image-url-row" v-for="(imgUrl, imgIdx) in v.imageUrls" :key="imgIdx">
-                  <input type="url" v-model="v.imageUrls[imgIdx]" placeholder="https://..." />
-                  <button type="button" class="btn-icon-remove" @click="removeVariantImage(idx, imgIdx)">✕</button>
+              <div class="variant-image-grid" v-if="v.imageUrls && v.imageUrls.length > 0">
+                <div class="variant-image-item" v-for="(imgUrl, imgIdx) in v.imageUrls" :key="imgIdx">
+                  <img :src="imgUrl" alt="Variant Image Preview" />
+                  <button type="button" class="btn-image-delete" @click="removeVariantImage(idx, imgIdx)" title="Xóa ảnh">✕</button>
                 </div>
               </div>
-              <button type="button" class="btn btn-outline btn-xs" @click="addVariantImage(idx)">+ Thêm URL ảnh</button>
+              <input 
+                :id="'variant-upload-' + idx"
+                type="file" 
+                multiple 
+                accept="image/jpeg,image/png,image/webp" 
+                style="display: none" 
+                @change="onVariantImagesChange($event, idx)" 
+              />
+              <button type="button" class="btn btn-outline btn-xs" @click="triggerVariantUpload(idx)">+ Tải ảnh lên</button>
             </div>
           </div>
         </div>
@@ -128,8 +131,8 @@
 
       <div class="form-actions">
         <button type="button" class="btn btn-outline" @click="router.back()">Hủy</button>
-        <button type="submit" class="btn btn-primary btn-large" :disabled="productStore.loading">
-          {{ productStore.loading ? 'Đang lưu...' : 'Lưu Sản Phẩm' }}
+        <button type="submit" class="btn btn-primary btn-large" :disabled="productStore.loading || isUploading">
+          {{ productStore.loading ? 'Đang lưu...' : isUploading ? 'Đang tải ảnh...' : 'Lưu Sản Phẩm' }}
         </button>
       </div>
     </form>
@@ -172,13 +175,16 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { uploadToCloudinary } from '../../api/cloudinary.js';
 import { useRouter, useRoute } from 'vue-router';
 import { useProductStore } from '../../stores/product.js';
+import SearchableSelect from '../../components/SearchableSelect.vue';
 
 const router = useRouter();
 const route  = useRoute();
 const productStore = useProductStore();
 const thumbInputRef = ref(null);
+const isUploading  = ref(false);  // true khi đang upload bất kỳ ảnh nào
 
 const isEditMode = ref(false);
 
@@ -218,17 +224,24 @@ onMounted(async () => {
 // ── Thumbnail ────────────────────────────────────────────────
 const triggerThumbInput = () => thumbInputRef.value?.click();
 
-const onThumbChange = (e) => {
+const onThumbChange = async (e) => {
   const file = e.target.files[0];
   if (!file) return;
-  if (file.size > 2 * 1024 * 1024) {
-    alert('File quá lớn! Vui lòng chọn ảnh dưới 2 MB.');
+  if (file.size > 5 * 1024 * 1024) {
+    alert('File quá lớn! Vui lòng chọn ảnh dưới 5 MB.');
+    e.target.value = '';
     return;
   }
-  const reader = new FileReader();
-  reader.onload = (ev) => { product.value.thumbnailUrl = ev.target.result; };
-  reader.readAsDataURL(file);
-  e.target.value = '';
+  try {
+    isUploading.value = true;
+    const url = await uploadToCloudinary(file);
+    product.value.thumbnailUrl = url;
+  } catch (err) {
+    alert('Upload ảnh thất bại: ' + err.message);
+  } finally {
+    isUploading.value = false;
+    e.target.value = '';
+  }
 };
 
 // ── Variants ─────────────────────────────────────────────────
@@ -237,8 +250,41 @@ const addVariant = () => {
 };
 const removeVariant = (idx) => variants.value.splice(idx, 1);
 
-const addVariantImage    = (vIdx) => variants.value[vIdx].imageUrls.push('');
 const removeVariantImage = (vIdx, imgIdx) => variants.value[vIdx].imageUrls.splice(imgIdx, 1);
+
+const triggerVariantUpload = (idx) => {
+  document.getElementById(`variant-upload-${idx}`)?.click();
+};
+
+const onVariantImagesChange = async (e, idx) => {
+  const files = e.target.files;
+  if (!files || files.length === 0) return;
+
+  const validFiles = [];
+  for (let i = 0; i < files.length; i++) {
+    if (files[i].size > 5 * 1024 * 1024) {
+      alert(`File "${files[i].name}" quá lớn! Vui lòng chọn ảnh dưới 5 MB.`);
+    } else {
+      validFiles.push(files[i]);
+    }
+  }
+  if (validFiles.length === 0) { e.target.value = ''; return; }
+
+  try {
+    isUploading.value = true;
+    // Upload song song tất cả ảnh hợp lệ
+    const urls = await Promise.all(validFiles.map(f => uploadToCloudinary(f)));
+    if (!variants.value[idx].imageUrls) {
+      variants.value[idx].imageUrls = [];
+    }
+    variants.value[idx].imageUrls.push(...urls);
+  } catch (err) {
+    alert('Upload ảnh biến thể thất bại: ' + err.message);
+  } finally {
+    isUploading.value = false;
+    e.target.value = '';
+  }
+};
 
 // ── Submit ───────────────────────────────────────────────────
 const handleSubmit = async () => {
@@ -363,14 +409,7 @@ const submitAddType = async () => {
 }
 .btn-add-inline:hover { opacity: 0.85; }
 
-/* URL input below thumbnail */
-.url-input-row { margin-top: 10px; }
-.url-input-row input {
-  width: 100%; padding: 8px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  font-size: 13px; box-sizing: border-box;
-}
+
 
 /* Thumbnail zone */
 .image-upload-zone {
@@ -379,8 +418,9 @@ const submitAddType = async () => {
   cursor: pointer; overflow: hidden; position: relative;
   background: var(--bg-color); transition: var(--transition-fast);
 }
-.image-upload-zone:hover { border-color: var(--primary-color); }
+.image-upload-zone:hover:not(.uploading) { border-color: var(--primary-color); }
 .image-upload-zone.has-image { border-style: solid; border-color: var(--border-color); }
+.image-upload-zone.uploading { cursor: not-allowed; border-color: var(--primary-color); border-style: solid; }
 .upload-placeholder { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--text-light); }
 .upload-placeholder p { font-weight: 500; color: var(--text-dark); font-size: 15px; }
 .upload-placeholder span { font-size: 12px; }
@@ -392,6 +432,20 @@ const submitAddType = async () => {
   opacity: 0; transition: opacity 0.2s;
 }
 .image-upload-zone:hover .upload-overlay { opacity: 1; }
+
+/* Upload loading state */
+.upload-loading {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  color: var(--primary-color);
+}
+.upload-loading p { font-size: 13px; font-weight: 500; margin: 0; }
+.upload-spinner {
+  width: 32px; height: 32px;
+  border: 3px solid rgba(0,0,0,0.1);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
 
 /* Variants */
 .variants-list { display: flex; flex-direction: column; gap: 16px; }
@@ -409,12 +463,46 @@ const submitAddType = async () => {
 
 .variant-images { margin-top: 12px; border-top: 1px dashed var(--border-color); padding-top: 12px; }
 .section-label { font-size: 13px; font-weight: 500; color: var(--text-dark); display: block; margin-bottom: 8px; }
-.image-url-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
-.image-url-row { display: flex; gap: 8px; align-items: center; }
-.image-url-row input { flex: 1; padding: 7px 10px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 13px; }
-.btn-icon-remove {
-  background: none; border: none; color: #EF4444;
-  font-size: 14px; cursor: pointer; padding: 4px 6px;
+.variant-image-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.variant-image-item {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--bg-color);
+}
+.variant-image-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.btn-image-delete {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: background-color 0.2s;
+}
+.btn-image-delete:hover {
+  background: #EF4444;
 }
 .btn-remove {
   background: none; border: 1px solid #EF4444; color: #EF4444;

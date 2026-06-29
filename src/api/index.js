@@ -90,6 +90,7 @@ export const productApi = {
   getAll: () => request('GET', '/products'),
   getById: (id) => request('GET', `/product/${id}`),
   getByShopId: (shopId) => request('GET', `/shopProduct/${shopId}`),
+  getByCategoryId: (categoryId) => request('GET', `/categoryProduct/${categoryId}`),
   create: (payload) => request('POST', '/product', payload),
   update: (id, payload) => request('PUT', `/product/${id}`, payload),
   delete: (id) => request('DELETE', `/product/${id}`),
@@ -177,39 +178,34 @@ export const reviewApi = {
     request('DELETE', `/review-images/${imageId}`)
 }
 
-export const variantApi = {
-  getByProductId: (productId) =>
-    request('GET', `/products/${productId}/variants`),
-
-  create: (productId, payload) =>
-    request('POST', `/products/${productId}/variants`, payload),
-
-  update: (id, payload) =>
-    request('PUT', `/variants/${id}`, payload),
-
-  delete: (id) =>
-    request('DELETE', `/variants/${id}`)
-}
-
 export const categoryApi = {
   getAll: () => request('GET', '/categories'),
-  create: (payload) =>
-  request('POST', '/categories', payload),
-  
+  create: (payload) => request('POST', '/categories', payload),
+  update: (id, payload) => request('PUT', `/categories/${id}`, payload),
+  delete: (id) => request('DELETE', `/categories/${id}`),
 }
 
 export const productTypeApi = {
-    getAll: () => request('GET', '/product-types'),
-    create: (payload) =>
-    request('POST', '/product-types', payload),
+  getAll: () => request('GET', '/product-types'),
+  create: (payload) => request('POST', '/product-types', payload),
+  update: (id, payload) => request('PUT', `/product-types/${id}`, payload),
+  delete: (id) => request('DELETE', `/product-types/${id}`),
+}
+
+export const variantApi = {
+  getByProductId: (productId) =>
+    request('GET', `/products/${productId}/variants`),
+  create: (productId, payload) =>
+    request('POST', `/products/${productId}/variants`, payload),
+  update: (id, payload) => request('PUT', `/variants/${id}`, payload),
+  delete: (id) => request('DELETE', `/variants/${id}`),
 }
 
 export const productImageApi = {
   addToVariant: (variantId, payload) =>
-  request('POST', `/variants/${variantId}/images`, payload),
+    request('POST', `/variants/${variantId}/images`, payload),
   delete: (id) =>
-  request('DELETE', `/product-images/${id}`),
-  
+    request('DELETE', `/product-images/${id}`),
 }
 
 // ────────────────────────────────────────────────────────────

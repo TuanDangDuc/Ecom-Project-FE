@@ -77,26 +77,25 @@ const router = createRouter({
         { path: 'dashboard', component: AdminDashboard },
         { path: 'users', component: AdminUsers },
         { path: 'shops', component: AdminShops },
-        { path: 'categories', component: AdminCategories }, // NEW
+        { path: 'categories', component: AdminCategories },
         { path: '', redirect: '/admin/dashboard' }
       ]
     }
   ]
 });
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, from) => {
   const userStore = useUserStore();
   if (to.meta.requiresAuth && !userStore.isLoggedIn) {
-    next('/login');
+    return '/login';
   } else if (to.meta.requiresSeller && userStore.currentUser?.role !== 'SELLER') {
     alert('Bạn không có quyền truy cập trang người bán!');
-    next('/');
+    return '/';
   } else if (to.meta.requiresAdmin && userStore.currentUser?.role !== 'ADMIN') {
     alert('Bạn không có quyền truy cập trang quản trị!');
-    next('/');
-  } else {
-    next();
+    return '/';
   }
+  return true;
 });
 
 export default router;

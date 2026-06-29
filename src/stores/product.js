@@ -28,8 +28,12 @@ export const useProductStore = defineStore('product', () => {
   async function fetchCategories() {
     try {
       const res = await categoryApi.getAll();
-      // BE trả về array hoặc { data: [...] }
-      categories.value = Array.isArray(res) ? res : (res.data ?? []);
+      // BE có thể trả: array | { data: [] } | { categories: [] }
+      if (Array.isArray(res)) {
+        categories.value = res;
+      } else {
+        categories.value = res?.data ?? res?.categories ?? [];
+      }
     } catch (e) {
       console.error('[Product] fetchCategories:', e);
     }
@@ -43,11 +47,42 @@ export const useProductStore = defineStore('product', () => {
     return res;
   }
 
+  async function updateCategory(id, name) {
+    try {
+      const res = await categoryApi.update(id, { name });
+      if (res.success !== false) {
+        await fetchCategories();
+      }
+      return res;
+    } catch (e) {
+      console.error('[Product] updateCategory:', e);
+      return { success: false, message: e.message };
+    }
+  }
+
+  async function deleteCategory(id) {
+    try {
+      const res = await categoryApi.delete(id);
+      if (res.success !== false) {
+        categories.value = categories.value.filter(c => c.id !== id);
+      }
+      return res;
+    } catch (e) {
+      console.error('[Product] deleteCategory:', e);
+      return { success: false, message: e.message };
+    }
+  }
+
   // ── Product Types ────────────────────────────────────────────
   async function fetchProductTypes() {
     try {
       const res = await productTypeApi.getAll();
-      productTypes.value = Array.isArray(res) ? res : (res.data ?? []);
+      // BE có thể trả: array | { data: [] } | { productTypes: [] } | { product_types: [] }
+      if (Array.isArray(res)) {
+        productTypes.value = res;
+      } else {
+        productTypes.value = res?.data ?? res?.productTypes ?? res?.product_types ?? [];
+      }
     } catch (e) {
       console.error('[Product] fetchProductTypes:', e);
     }
@@ -61,6 +96,32 @@ export const useProductStore = defineStore('product', () => {
     return res;
   }
 
+  async function updateProductType(id, name, description) {
+    try {
+      const res = await productTypeApi.update(id, { name, description });
+      if (res.success !== false) {
+        await fetchProductTypes();
+      }
+      return res;
+    } catch (e) {
+      console.error('[Product] updateProductType:', e);
+      return { success: false, message: e.message };
+    }
+  }
+
+  async function deleteProductType(id) {
+    try {
+      const res = await productTypeApi.delete(id);
+      if (res.success !== false) {
+        productTypes.value = productTypes.value.filter(t => t.id !== id);
+      }
+      return res;
+    } catch (e) {
+      console.error('[Product] deleteProductType:', e);
+      return { success: false, message: e.message };
+    }
+  }
+
   // ── Products (seller) ────────────────────────────────────────
   async function fetchShopProducts() {
     const shopId = getShopId();
@@ -70,8 +131,12 @@ export const useProductStore = defineStore('product', () => {
     error.value = null;
     try {
       const res = await productApi.getByShopId(shopId);
-      // BE: array hoặc { data: [...] }
-      shopProducts.value = Array.isArray(res) ? res : (res.data ?? []);
+      // BE có thể trả: array | { data: [] } | { products: [] }
+      if (Array.isArray(res)) {
+        shopProducts.value = res;
+      } else {
+        shopProducts.value = res?.data ?? res?.products ?? [];
+      }
     } catch (e) {
       error.value = e.message;
       console.error('[Product] fetchShopProducts:', e);
@@ -100,16 +165,19 @@ export const useProductStore = defineStore('product', () => {
         shopId,
       };
       const productRes = await productApi.create(payload);
-      if (!productRes.success && productRes.success !== undefined) {
+      console.log('[createProduct] BE response:', productRes);
+
+      if (productRes.success === false) {
         throw new Error(productRes.message || 'Tạo sản phẩm thất bại');
       }
 
+      // Parse ID: hỗ trợ { data: { id } }, { product: { id } }, { id }, hoặc số trực tiếp
       const newProductId =
-        productRes.data?.id ??
-        productRes.product?.id ??
-        productRes.id;
+        productRes?.data?.id ??
+        productRes?.product?.id ??
+        productRes?.id;
 
-      if (!newProductId) throw new Error('Không lấy được ID sản phẩm mới');
+      if (!newProductId) throw new Error('Không lấy được ID sản phẩm mới từ BE');
 
       // 2. Tạo từng variant
       for (const v of variantList) {
@@ -214,8 +282,12 @@ export const useProductStore = defineStore('product', () => {
     error,
     fetchCategories,
     createCategory,
+    updateCategory,
+    deleteCategory,
     fetchProductTypes,
     createProductType,
+    updateProductType,
+    deleteProductType,
     fetchShopProducts,
     createProduct,
     updateProduct,
