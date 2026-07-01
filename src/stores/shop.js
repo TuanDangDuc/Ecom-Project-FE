@@ -26,7 +26,7 @@ export const useShopStore = defineStore('shop', () => {
     try {
       const res = await shopApi.create(shopData);
       if (res && res.success !== false) {
-        // Sau khi tạo xong, load lại shop của user này
+
         await loadShop(shopData.userId);
       }
     } catch (err) {
@@ -51,8 +51,6 @@ export const useShopStore = defineStore('shop', () => {
     return products.value.filter(p => p.shopId === currentShop.value.id);
   });
 
-  // Thực tế shopProducts nên được fetch từ productApi.getByShopId(shopId)
-  // thay vì filter từ danh sách toàn bộ, nên ta viết hàm fetchShopProducts
   async function fetchShopProducts() {
     if (!currentShop.value) return;
     try {
@@ -63,9 +61,6 @@ export const useShopStore = defineStore('shop', () => {
     }
   }
 
-  // Delegate sang store product hoặc dùng trực tiếp api ở đây
-  // Vì product.js đã có createProduct xịn rồi, ta có thể gợi ý chuyển qua dùng store product.
-  // Nhưng nếu vẫn muốn giữ ở đây:
   async function addProduct(productData, variantList) {
     if (!currentShop.value) return;
 
@@ -80,7 +75,7 @@ export const useShopStore = defineStore('shop', () => {
         ratingAverage: 0,
         shopId: currentShop.value.id
       };
-      
+
       const productRes = await productApi.create(payload);
       if (productRes && productRes.success !== false) {
         const newProductId = productRes.data?.id || productRes.product?.id || productRes.id;

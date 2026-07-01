@@ -81,10 +81,10 @@ onMounted(async () => {
   }
 
   try {
-    const userId = userStore.currentUser.id || Number(localStorage.getItem('userId'))
+    const userId = userStore.currentUser?.id || Number(sessionStorage.getItem('userId') || localStorage.getItem('userId'))
     const res = await shopApi.getByUserId(userId)
 
-    const list = res.data || res.shops || res.result || []
+    const list = res?.data || res.shops || res?.result || []
     const currentShop = Array.isArray(list) ? list[0] : list
 
     if (currentShop && currentShop.id) {

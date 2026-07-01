@@ -5,14 +5,14 @@
         <h2>Đăng Nhập</h2>
         <p>Chào mừng bạn trở lại với ShopeeLite</p>
       </div>
-      
+
       <form class="auth-form" @submit.prevent="handleLogin">
         <div class="form-group">
           <label>Tên đăng nhập</label>
           <input type="text" v-model="username" placeholder="Nhập tên đăng nhập" required />
           <span class="hint">Nhập username đã đăng ký</span>
         </div>
-        
+
         <div class="form-group">
           <div class="password-label-row">
             <label>Mật khẩu</label>
@@ -21,9 +21,9 @@
           <input type="password" v-model="password" placeholder="Nhập mật khẩu" required />
           <span class="hint">Nhập mật khẩu của tài khoản</span>
         </div>
-        
+
         <div class="form-error" v-if="errorMsg">{{ errorMsg }}</div>
-        
+
         <button type="submit" class="btn btn-primary btn-block" :disabled="isLoading">
           {{ isLoading ? 'Đang đăng nhập...' : 'Đăng Nhập' }}
         </button>
@@ -49,18 +49,18 @@ const shopStore = useShopStore();
 const username = ref('');
 const password = ref('');
 const errorMsg = ref('');
-const isLoading = ref(false); // Trạng thái chặn bấm liên tục khi đang đợi API mạng
+const isLoading = ref(false);
 
 const handleLogin = async () => {
   errorMsg.value = '';
   isLoading.value = true;
-  
+
   try {
-    // Chờ đợi hàm login xử lý và xác thực token thông qua API mạng
+
     const success = await userStore.login(username.value, password.value);
-    
+
     if (success) {
-      // Phân quyền điều hướng trang sau khi đăng nhập thành công
+
       const role = userStore.currentUser?.role
 
         if (role === 'ADMIN') {
@@ -83,11 +83,11 @@ const handleLogin = async () => {
 </script>
 
 <style scoped>
-.mt-4 { 
-  margin-top: 4rem; 
-  margin-bottom: 4rem; 
-  display: flex; 
-  justify-content: center; 
+.mt-4 {
+  margin-top: 4rem;
+  margin-bottom: 4rem;
+  display: flex;
+  justify-content: center;
 }
 .auth-card {
   width: 100%;

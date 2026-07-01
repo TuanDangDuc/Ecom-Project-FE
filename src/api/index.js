@@ -1,16 +1,10 @@
-// ============================================================
-//  src/api/index.js
-//  Tất cả API call của Job 1 (Cart | Order | Review)
-//  Thay BASE_URL bằng địa chỉ backend thật khi có
-// ============================================================
+
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'https://api.ecom.anhchuno.id.vn/api'
 
-
-// Sửa lại hết apiAuth, user, shop, address 
 async function request(method, path, body = null) {
-  const userId = localStorage.getItem('userId')
-  const userRole = localStorage.getItem('userRole')
+  const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId')
+  const userRole = sessionStorage.getItem('userRole') || localStorage.getItem('userRole')
 
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
@@ -32,8 +26,8 @@ async function request(method, path, body = null) {
 }
 
 async function requestMultipart(method, path, formData) {
-  const userId = localStorage.getItem('userId')
-  const userRole = localStorage.getItem('userRole')
+  const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId')
+  const userRole = sessionStorage.getItem('userRole') || localStorage.getItem('userRole')
 
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
@@ -118,81 +112,52 @@ export const productApi = {
   update: (id, payload) => request('PUT', `/product/${id}`, payload),
   delete: (id) => request('DELETE', `/product/${id}`),
 }
-// ────────────────────────────────────────────────────────────
-//  CART API  (bảng: carts, cartItem)
-// ────────────────────────────────────────────────────────────
 
 export const cartApi = {
-  // Lấy giỏ hàng của user hiện tại
-  // GET /cart  →  { id, userId, items: [...] }
+
   getCart() {
     return request('GET', '/cart');
   },
 
-  // Thêm sản phẩm vào giỏ
-  // POST /cart/items  body: { productVariantId, quantity }
   addItem(productVariantId, quantity) {
     return request('POST', '/cart/items', { productVariantId, quantity });
   },
 
-  // Cập nhật số lượng một item
-  // PUT /cart/items/:cartItemId  body: { quantity }
   updateItem(cartItemId, quantity) {
     return request('PUT', `/cart/items/${cartItemId}`, { quantity });
   },
 
-  // Xoá một item khỏi giỏ
-  // DELETE /cart/items/:cartItemId
   removeItem(cartItemId) {
     return request('DELETE', `/cart/items/${cartItemId}`);
   },
 
-  // Xoá toàn bộ giỏ (dùng sau khi đặt hàng)
-  // DELETE /cart
   clearCart() {
     return request('DELETE', '/cart');
   },
 };
-
-// ────────────────────────────────────────────────────────────
-//  ORDER API  (bảng: orders, orderItem)
-// ────────────────────────────────────────────────────────────
 
 export const orderApi = {
   placeOrder(payload) {
     return request('POST', '/orders', payload);
   },
 
-  // Lấy danh sách đơn hàng của user (buyer)
-  // GET /orders  →  [{ id, orderCode, status, totalAmount, createdAt, items: [...] }]
   getMyOrders() {
     return request('GET', '/orders');
   },
 
-  // Lấy chi tiết một đơn hàng
-  // GET /orders/:orderId
   getOrderById(orderId) {
     return request('GET', `/orders/${orderId}`);
   },
 
-  // Cập nhật trạng thái đơn hàng (ví dụ: Huỷ đơn)
-  // PUT /orders/:orderId/status
   updateStatus(orderId, status) {
     return request('PUT', `/orders/${orderId}/status`, { status });
   },
 
-  // Cập nhật trạng thái item trong đơn hàng
-  // PUT /order-item/:id/status
   updateItemStatus(id, status) {
     return request('PUT', `/order-item/${id}/status`, { status });
   },
 };
 
-// ────────────────────────────────────────────────────────────
-//  REVIEW API  (bảng: reviews, reviewImages)
-// ────────────────────────────────────────────────────────────
-
-//Sửa lại toàn bộ reviewApi
 export const reviewApi = {
   createReview: (payload) =>
     request('POST', '/reviews', payload),
@@ -242,31 +207,25 @@ export const productImageApi = {
     request('DELETE', `/product-images/${id}`),
 }
 
-// ────────────────────────────────────────────────────────────
-//  HELPER FUNCTIONS (CÁCH 1)
-// ────────────────────────────────────────────────────────────
-
-// Hàm format hiển thị các option của sản phẩm (ví dụ: Đỏ - Size L)
 export const formatVariantOptions = (options) => {
   if (!options) return '';
-  // Nếu BE trả về mảng, nối chúng lại bằng dấu '-'
+
   if (Array.isArray(options)) {
     return options.join(' - ');
   }
-  // Nếu BE trả về chuỗi hoặc kiểu khác
+
   return String(options);
 };
 
-// Hàm dịch trạng thái đơn hàng sang tiếng Việt cho Orders.vue
 export const mapOrderStatus = (status) => {
   if (!status) return 'Không xác định';
-  
+
   const statusMap = {
     'PENDING': 'Chờ xác nhận',
     'CONFIRMED': 'Đã xác nhận',
     'SHIPPING': 'Đang giao hàng',
     'COMPLETED': 'Đã giao thành công',
-    'CANCELED': 'Đã hủy', //bỏ 1 chữ l cho khớp be nha
+    'CANCELED': 'Đã hủy',
   };
 
   return statusMap[status] || status;

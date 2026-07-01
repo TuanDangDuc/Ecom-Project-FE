@@ -5,14 +5,13 @@
       <button class="btn btn-outline" @click="router.back()">Trở lại</button>
     </div>
 
-    <!-- Loading overlay -->
     <div class="loading-overlay" v-if="productStore.loading">
       <div class="spinner"></div>
       <p>Đang xử lý...</p>
     </div>
 
     <form @submit.prevent="handleSubmit">
-      <!-- SECTION 1: Thông tin cơ bản -->
+
       <div class="form-section">
         <h3>1. Thông tin cơ bản</h3>
 
@@ -27,38 +26,35 @@
         </div>
 
         <div class="form-row">
-          <!-- Danh mục -->
+
           <div class="form-group">
             <label>Danh mục *</label>
-            <SearchableSelect 
-              v-model="product.categoryId" 
-              :options="productStore.categories" 
-              placeholder="-- Chọn danh mục --" 
+            <SearchableSelect
+              v-model="product.categoryId"
+              :options="productStore.categories"
+              placeholder="-- Chọn danh mục --"
             />
           </div>
 
-          <!-- Loại sản phẩm -->
           <div class="form-group">
             <label>Loại sản phẩm</label>
-            <SearchableSelect 
-              v-model="product.typeId" 
-              :options="productStore.productTypes" 
-              placeholder="-- Không chọn --" 
+            <SearchableSelect
+              v-model="product.typeId"
+              :options="productStore.productTypes"
+              placeholder="-- Không chọn --"
             />
           </div>
 
-          <!-- Giá cơ bản -->
           <div class="form-group">
             <label>Giá cơ bản (VND) *</label>
             <input type="number" v-model="product.basePrice" required min="0" placeholder="0" />
           </div>
         </div>
 
-        <!-- Thumbnail -->
         <div class="form-group">
           <label>Ảnh đại diện sản phẩm</label>
           <div class="image-upload-zone" @click="!isUploading && triggerThumbInput()" :class="{ 'has-image': product.thumbnailUrl, 'uploading': isUploading }">
-            <!-- Đang upload -->
+
             <div class="upload-loading" v-if="isUploading">
               <div class="upload-spinner"></div>
               <p>Đang tải ảnh lên...</p>
@@ -78,7 +74,6 @@
         </div>
       </div>
 
-      <!-- SECTION 2: Biến thể -->
       <div class="form-section">
         <h3>2. Phân loại hàng (Biến thể)</h3>
         <p class="subtitle">Thêm ít nhất 1 phân loại để bán (ví dụ: Trắng – Size M)</p>
@@ -104,7 +99,6 @@
               </div>
             </div>
 
-            <!-- Ảnh biến thể -->
             <div class="variant-images">
               <label class="section-label">Ảnh biến thể</label>
               <div class="variant-image-grid" v-if="v.imageUrls && v.imageUrls.length > 0">
@@ -113,13 +107,13 @@
                   <button type="button" class="btn-image-delete" @click="removeVariantImage(idx, imgIdx)" title="Xóa ảnh">✕</button>
                 </div>
               </div>
-              <input 
+              <input
                 :id="'variant-upload-' + idx"
-                type="file" 
-                multiple 
-                accept="image/jpeg,image/png,image/webp" 
-                style="display: none" 
-                @change="onVariantImagesChange($event, idx)" 
+                type="file"
+                multiple
+                accept="image/jpeg,image/png,image/webp"
+                style="display: none"
+                @change="onVariantImagesChange($event, idx)"
               />
               <button type="button" class="btn btn-outline btn-xs" @click="triggerVariantUpload(idx)">+ Tải ảnh lên</button>
             </div>
@@ -137,7 +131,6 @@
       </div>
     </form>
 
-    <!-- Modal thêm danh mục -->
     <div class="modal-overlay" v-if="showAddCategoryModal" @click.self="showAddCategoryModal = false">
       <div class="modal">
         <h3>Thêm Danh Mục Mới</h3>
@@ -152,7 +145,6 @@
       </div>
     </div>
 
-    <!-- Modal thêm loại sản phẩm -->
     <div class="modal-overlay" v-if="showAddTypeModal" @click.self="showAddTypeModal = false">
       <div class="modal">
         <h3>Thêm Loại Sản Phẩm Mới</h3>
@@ -179,16 +171,16 @@ import { uploadToCloudinary } from '../../api/cloudinary.js';
 import { useRouter, useRoute } from 'vue-router';
 import { useProductStore } from '../../stores/product.js';
 import SearchableSelect from '../../components/SearchableSelect.vue';
+import { productApi, variantApi, productImageApi } from '../../api/index.js';
 
 const router = useRouter();
 const route  = useRoute();
 const productStore = useProductStore();
 const thumbInputRef = ref(null);
-const isUploading  = ref(false);  // true khi đang upload bất kỳ ảnh nào
+const isUploading  = ref(false);
 
 const isEditMode = ref(false);
 
-// ── Form state ──────────────────────────────────────────────
 const product = ref({
   name:         '',
   description:  '',
@@ -202,26 +194,84 @@ const variants = ref([
   { options: 'Mặc định', price: 0, stock: 10, imageUrls: [], imageFiles: [] }
 ]);
 
-// ── Modal state ─────────────────────────────────────────────
+const originalVariantIds = ref([]);
+
 const showAddCategoryModal = ref(false);
 const newCategoryName      = ref('');
 const showAddTypeModal     = ref(false);
 const newTypeName          = ref('');
 const newTypeDesc          = ref('');
 
-// ── Lifecycle ────────────────────────────────────────────────
 onMounted(async () => {
+  productStore.loading = true;
   await Promise.all([
     productStore.fetchCategories(),
     productStore.fetchProductTypes(),
   ]);
-  // TODO: nếu route có param id → load sản phẩm để edit
   if (route.params.id) {
     isEditMode.value = true;
+    try {
+      const prodId = Number(route.params.id);
+      const prodRes = await productApi.getById(prodId);
+      const prodData = prodRes?.data || prodRes.product || prodRes;
+
+      product.value = {
+        name: prodData.name || '',
+        description: prodData.description || '',
+        categoryId: prodData.categoryId || '',
+        typeId: prodData.typeId || '',
+        basePrice: prodData.basePrice || 0,
+        thumbnailUrl: prodData.thumbnailUrl || prodData.imageUrl || '',
+        shopId: prodData.shopId || null,
+        ratingAverage: prodData.ratingAverage || 0,
+      };
+
+      const varRes = await variantApi.getByProductId(prodId);
+      const varData = varRes.data || varRes.variants || varRes || [];
+      if (Array.isArray(varData) && varData.length > 0) {
+        variants.value = varData.map(v => {
+          let imgList = [];
+          if (v.imageUrl) {
+            imgList.push(v.imageUrl);
+          }
+          if (Array.isArray(v.images)) {
+            v.images.forEach(img => {
+              const url = img.imageUrl || img.url || (typeof img === 'string' ? img : '');
+              if (url) imgList.push(url);
+            });
+          }
+          if (Array.isArray(v.productImages)) {
+            v.productImages.forEach(img => {
+              const url = img.imageUrl || img.url || (typeof img === 'string' ? img : '');
+              if (url) imgList.push(url);
+            });
+          }
+          imgList = [...new Set(imgList)];
+
+          return {
+            id: v.id,
+            options: v.options || '',
+            price: v.price || 0,
+            stock: v.stock || 0,
+            imageUrls: imgList,
+            imageFiles: [],
+          };
+        });
+      } else {
+        variants.value = [
+          { options: 'Mặc định', price: product.value.basePrice, stock: 10, imageUrls: [], imageFiles: [] }
+        ];
+      }
+
+      originalVariantIds.value = Array.isArray(varData) ? varData.map(v => v.id).filter(Boolean) : [];
+    } catch (err) {
+      console.error('[ProductForm] failed to load product:', err);
+      alert('Không thể tải thông tin sản phẩm: ' + err.message);
+    }
   }
+  productStore.loading = false;
 });
 
-// ── Thumbnail ────────────────────────────────────────────────
 const triggerThumbInput = () => thumbInputRef.value?.click();
 
 const onThumbChange = async (e) => {
@@ -244,7 +294,6 @@ const onThumbChange = async (e) => {
   }
 };
 
-// ── Variants ─────────────────────────────────────────────────
 const addVariant = () => {
   variants.value.push({ options: '', price: product.value.basePrice, stock: 10, imageUrls: [], imageFiles: [] });
 };
@@ -293,7 +342,6 @@ const onVariantImagesChange = async (e, idx) => {
   }
 };
 
-// ── Submit ───────────────────────────────────────────────────
 const handleSubmit = async () => {
   if (variants.value.length === 0) {
     alert('Vui lòng thêm ít nhất 1 phân loại hàng.');
@@ -304,24 +352,84 @@ const handleSubmit = async () => {
     return;
   }
 
-  // Lọc imageUrls rỗng
   const cleanVariants = variants.value.map(v => ({
     ...v,
     imageUrls: (v.imageUrls || []).filter(u => u.trim() !== ''),
     imageFiles: v.imageFiles || [],
   }));
 
-  const result = await productStore.createProduct(product.value, cleanVariants);
+  try {
+    productStore.loading = true;
+    if (isEditMode.value) {
+      const prodId = Number(route.params.id);
 
-  if (result.success) {
-    alert('Thêm sản phẩm thành công!');
-    router.push('/seller/products');
-  } else {
-    alert('Lỗi: ' + (result.message || 'Không thể lưu sản phẩm'));
+      const productPayload = {
+        name: product.value.name,
+        description: product.value.description ?? null,
+        thumbnailUrl: product.value.thumbnailUrl ?? null,
+        basePrice: Number(product.value.basePrice) || 0,
+        categoryId: product.value.categoryId ? Number(product.value.categoryId) : null,
+        typeId: product.value.typeId ? Number(product.value.typeId) : null,
+        shopId: product.value.shopId ? Number(product.value.shopId) : null,
+        ratingAverage: Number(product.value.ratingAverage) || 0,
+      };
+
+      const prodUpdateRes = await productStore.updateProduct(prodId, productPayload);
+      if (prodUpdateRes.success === false) {
+        throw new Error(prodUpdateRes.message || 'Cập nhật sản phẩm thất bại');
+      }
+
+      const currentVariantIds = cleanVariants.map(v => v.id).filter(Boolean);
+      const toDeleteIds = originalVariantIds.value.filter(id => !currentVariantIds.includes(id));
+      for (const id of toDeleteIds) {
+        await variantApi.delete(id);
+      }
+
+      for (const v of cleanVariants) {
+        let vId = v.id;
+        if (vId) {
+          await variantApi.update(vId, {
+            options: v.options,
+            price: Number(v.price) || 0,
+            stock: Number(v.stock) || 0,
+          });
+        } else {
+          const createRes = await variantApi.create(prodId, {
+            options: v.options,
+            price: Number(v.price) || 0,
+            stock: Number(v.stock) || 0,
+          });
+          vId = createRes.data?.id ?? createRes.variant?.id ?? createRes.id;
+        }
+
+        if (vId && v.imageFiles && v.imageFiles.length > 0) {
+          const formData = new FormData();
+          for (const file of v.imageFiles) {
+            formData.append('images[]', file);
+          }
+          await productImageApi.addToVariant(vId, formData);
+        }
+      }
+
+      alert('Chỉnh sửa sản phẩm thành công!');
+      router.push('/seller/products');
+    } else {
+
+      const result = await productStore.createProduct(product.value, cleanVariants);
+      if (result.success) {
+        alert('Thêm sản phẩm thành công!');
+        router.push('/seller/products');
+      } else {
+        alert('Lỗi: ' + (result.message || 'Không thể lưu sản phẩm'));
+      }
+    }
+  } catch (err) {
+    alert('Lỗi khi lưu sản phẩm: ' + err.message);
+  } finally {
+    productStore.loading = false;
   }
 };
 
-// ── Modal: Category ──────────────────────────────────────────
 const submitAddCategory = async () => {
   const name = newCategoryName.value.trim();
   if (!name) return;
@@ -337,7 +445,6 @@ const submitAddCategory = async () => {
   }
 };
 
-// ── Modal: ProductType ───────────────────────────────────────
 const submitAddType = async () => {
   const name = newTypeName.value.trim();
   if (!name) return;
@@ -363,7 +470,6 @@ const submitAddType = async () => {
 }
 .title { font-size: 20px; color: var(--text-dark); }
 
-/* Loading */
 .loading-overlay {
   position: fixed; inset: 0; background: rgba(255,255,255,0.75);
   display: flex; flex-direction: column; align-items: center;
@@ -378,7 +484,6 @@ const submitAddType = async () => {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Sections */
 .form-section {
   background: #F9FAFB; border: 1px solid var(--border-color);
   border-radius: var(--radius-md); padding: 24px; margin-bottom: 24px;
@@ -405,7 +510,6 @@ const submitAddType = async () => {
 .form-group select:focus { border-color: var(--primary-color); }
 .form-row { display: flex; gap: 20px; }
 
-/* Select with add button */
 .select-with-add { display: flex; gap: 8px; align-items: stretch; }
 .select-with-add select { flex: 1; }
 .btn-add-inline {
@@ -417,9 +521,6 @@ const submitAddType = async () => {
 }
 .btn-add-inline:hover { opacity: 0.85; }
 
-
-
-/* Thumbnail zone */
 .image-upload-zone {
   border: 2px dashed var(--border-color); border-radius: var(--radius-md);
   height: 180px; display: flex; align-items: center; justify-content: center;
@@ -441,7 +542,6 @@ const submitAddType = async () => {
 }
 .image-upload-zone:hover .upload-overlay { opacity: 1; }
 
-/* Upload loading state */
 .upload-loading {
   display: flex; flex-direction: column; align-items: center; gap: 10px;
   color: var(--primary-color);
@@ -455,7 +555,6 @@ const submitAddType = async () => {
   animation: spin 0.7s linear infinite;
 }
 
-/* Variants */
 .variants-list { display: flex; flex-direction: column; gap: 16px; }
 .variant-item {
   background: var(--white); padding: 16px;
@@ -526,7 +625,6 @@ const submitAddType = async () => {
 .btn-large { padding: 14px 40px; font-size: 16px; }
 button:disabled { opacity: 0.6; cursor: not-allowed; }
 
-/* Modals */
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.45);
   display: flex; align-items: center; justify-content: center; z-index: 200;

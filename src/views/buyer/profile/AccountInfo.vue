@@ -8,9 +8,9 @@
         <form @submit.prevent="saveProfile">
           <div class="form-group row">
             <label>Tên Đăng Nhập</label>
-            <div class="value">{{ user.username || user.userName }}</div> 
+            <div class="value">{{ user.username || user.userName }}</div>
           </div>
-          
+
           <div class="form-group row">
             <label>Tên</label>
             <input type="text" v-model="formData.fullName" required />
@@ -43,7 +43,7 @@
           </div>
         </form>
       </div>
-      
+
       <div class="avatar-section">
         <div class="avatar-preview" @click="triggerFileInput" title="Bấm để đổi ảnh">
           <img :src="formData.avatarUrl || user.avatarUrl" alt="Avatar" v-if="formData.avatarUrl || user.avatarUrl">
@@ -70,7 +70,6 @@
 </template>
 
 <script setup>
- //sửa toàn bộ lại script setup
 import { ref, onMounted, computed } from 'vue'
 import { useUserStore } from '../../../stores/user'
 import { userApi } from '../../../api'

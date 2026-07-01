@@ -51,10 +51,10 @@
           <span>Tổng cộng</span>
           <span class="total-price">₫{{ formatPrice(cartStore.totalCost) }}</span>
         </div>
-        <button class="btn btn-primary btn-checkout" @click="router.push('/checkout')">Tiến Hành Thanh Toán</button>
+        <button class="btn btn-primary btn-checkout" @click="handleCheckout">Tiến Hành Thanh Toán</button>
       </div>
     </div>
-    
+
     <div class="empty-cart" v-else>
       <div class="empty-icon">🛍️</div>
       <div class="empty-msg">Giỏ hàng của bạn đang trống</div>
@@ -67,11 +67,22 @@
 <script setup>
 import { onMounted } from 'vue';
 import { useCartStore } from '../../stores/cart';
+import { useUserStore } from '../../stores/user';
 import { useRouter } from 'vue-router';
 import { formatVariantOptions } from '../../api/index.js';
 
 const cartStore = useCartStore();
+const userStore = useUserStore();
 const router = useRouter();
+
+const handleCheckout = () => {
+  if (!userStore.isLoggedIn) {
+    alert('Vui lòng đăng nhập để tiến hành thanh toán!');
+    router.push('/login');
+    return;
+  }
+  router.push('/checkout');
+};
 
 onMounted(() => {
   cartStore.fetchCart();

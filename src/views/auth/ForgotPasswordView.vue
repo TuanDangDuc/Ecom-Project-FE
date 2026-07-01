@@ -6,8 +6,7 @@
         <p>{{ step === 1 ? 'Nhập email của bạn để nhận mã khôi phục' : (step === 2 ? `Mã xác nhận đã được gửi đến ${email}` : 'Vui lòng nhập mật khẩu mới của bạn') }}</p>
       </div>
       <div class="form-error" v-if="errorMsg">{{ errorMsg }}</div>
-      
-      <!-- Step 1: Email -->
+
       <form class="auth-form" @submit.prevent="handleSendOTP" v-if="step === 1">
         <div class="form-group">
           <label>Email liên kết</label>
@@ -18,7 +17,6 @@
         </button>
       </form>
 
-      <!-- Step 2: OTP -->
       <form class="auth-form" @submit.prevent="handleVerifyOTP" v-if="step === 2">
         <div class="form-group">
           <label>Mã OTP</label>
@@ -32,7 +30,6 @@
         </div>
       </form>
 
-      <!-- Step 3: New Password -->
       <form class="auth-form" @submit.prevent="handleResetPassword" v-if="step === 3">
         <div class="form-group">
           <label>Mật khẩu mới</label>
@@ -44,7 +41,7 @@
         </div>
         <div class="form-error" v-if="errorMsg">{{ errorMsg }}</div>
         <div class="form-success" v-if="successMsg">{{ successMsg }}</div>
-        
+
         <button type="submit" class="btn btn-primary btn-block" :disabled="isLoading || successMsg !== ''">
           {{ isLoading ? 'Đang đổi...' : 'Đổi Mật Khẩu' }}
         </button>
@@ -61,7 +58,6 @@
 </template>
 
 <script setup>
-//sửa lại toàn bộ
 import { ref } from 'vue'
 import { authApi } from '../../api'
 

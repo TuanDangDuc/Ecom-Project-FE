@@ -8,62 +8,31 @@
     </div>
 
     <div class="search-layout">
-      <!-- Filters Sidebar -->
+
       <aside class="filters">
         <div class="filter-header">
           <h3 class="filter-title">Bộ Lọc</h3>
           <button class="reset-btn" @click="resetFilters" v-if="hasActiveFilters">Xóa lọc</button>
         </div>
 
-        <!-- Category -->
         <div class="filter-group">
           <h4>Danh Mục</h4>
           <ul class="filter-list">
             <li v-for="cat in categories" :key="cat.id">
-              <label :class="{ active: selectedCategories.includes(cat.id) }">
-                <input type="checkbox" :value="cat.id" v-model="selectedCategories">
+              <label
+                :class="{ active: selectedCategory === cat.id }"
+                @click.prevent="selectedCategory = selectedCategory === cat.id ? null : cat.id"
+              >
                 <span class="check-label">{{ cat.name }}</span>
               </label>
             </li>
           </ul>
         </div>
 
-        <!-- Price Range -->
-        <div class="filter-group">
-          <h4>Khoảng Giá</h4>
-          <div class="price-presets">
-            <button
-              v-for="preset in pricePresets"
-              :key="preset.label"
-              class="preset-btn"
-              :class="{ active: minPrice === preset.min && maxPrice === preset.max }"
-              @click="setPresetPrice(preset)"
-            >{{ preset.label }}</button>
-          </div>
-        </div>
-
-
-        <!-- Rating -->
-        <div class="filter-group">
-          <h4>Đánh Giá</h4>
-          <div class="rating-options">
-            <label
-              v-for="r in [5,4,3]"
-              :key="r"
-              class="rating-label"
-              :class="{ active: minRating === r }"
-              @click="minRating = minRating === r ? 0 : r"
-            >
-              <span class="stars">{{ '★'.repeat(r) }}{{ '☆'.repeat(5-r) }}</span>
-              <span class="rating-text">trở lên</span>
-            </label>
-          </div>
-        </div>
       </aside>
 
-      <!-- Results -->
       <div class="results">
-        <!-- Sort Bar -->
+
         <div class="sort-bar">
           <span class="sort-label">Sắp xếp:</span>
           <button
@@ -75,11 +44,10 @@
           >{{ opt.label }}</button>
         </div>
 
-        <!-- Active Filter Tags -->
         <div class="active-filters" v-if="hasActiveFilters">
-          <span class="filter-tag" v-if="selectedCategories.length > 0">
-            Danh mục: {{ selectedCategories.length }} đã chọn
-            <button @click="selectedCategories = []">✕</button>
+          <span class="filter-tag" v-if="selectedCategory">
+            Danh mục: {{ getCategoryName(selectedCategory) }}
+            <button @click="selectedCategory = null">✕</button>
           </span>
           <span class="filter-tag" v-if="minPrice || maxPrice">
             Giá: {{ minPrice ? '₫'+formatPrice(minPrice) : '0' }} — {{ maxPrice ? '₫'+formatPrice(maxPrice) : '∞' }}
@@ -107,8 +75,12 @@
                 <div class="product-price">₫{{ formatPrice(product.basePrice) }}</div>
               </div>
               <div class="product-rating">
-                <span class="stars">★★★★★</span>
-                <span class="sold">{{ product.id * 15 + 12 }} đã bán</span>
+                <span class="stars">
+                  {{ '★'.repeat(Math.round(product.ratingAverage || 0)) }}{{ '☆'.repeat(5 - Math.round(product.ratingAverage || 0)) }}
+                </span>
+                <span class="rating-num" style="font-size: 12px; color: var(--text-light); margin-left: 4px;">
+                  {{ product.ratingAverage ? Number(product.ratingAverage).toFixed(1) : '0.0' }}
+                </span>
               </div>
             </div>
           </router-link>
@@ -124,13 +96,14 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { productApi, categoryApi } from '../../api';
 
 const route = useRoute();
+const router = useRouter();
 
 const query = ref(route.query.keyword || '');
-const selectedCategories = ref([]);
+const selectedCategory = ref(null);
 const minPrice = ref(null);
 const maxPrice = ref(null);
 const minRating = ref(0);
@@ -160,16 +133,16 @@ const loadData = async () => {
       productApi.getAll(),
       categoryApi.getAll()
     ]);
-    
-    const prodList = prodRes.data || prodRes.products || prodRes.result || prodRes || [];
+
+    const prodList = prodRes?.data || prodRes?.products || prodRes?.result || prodRes || [];
     allProducts.value = Array.isArray(prodList) ? prodList.map(p => ({
       ...p,
-      thumbnailUrl: p.thumbnailUrl || p.imageUrl || 'https://picsum.photos/seed/product/400/400',
+      thumbnailUrl: p.imageUrl || p.thumbnailUrl || 'https://picsum.photos/seed/product/400/400',
       basePrice: p.basePrice || p.price || 0,
       ratingAverage: p.ratingAverage || 0,
     })) : [];
 
-    const catList = catRes.data || catRes.categories || catRes.result || catRes || [];
+    const catList = catRes?.data || catRes?.categories || catRes?.result || catRes || [];
     categories.value = Array.isArray(catList) ? catList : [];
   } catch (err) {
     console.error('Error loading data in Search:', err);
@@ -182,6 +155,18 @@ onMounted(loadData);
 
 watch(() => route.query.keyword, (newKeyword) => {
   query.value = newKeyword || '';
+  if (newKeyword) {
+    selectedCategory.value = null;
+  }
+});
+
+watch(selectedCategory, (newCat) => {
+  if (newCat) {
+    query.value = '';
+    const newQuery = { ...route.query };
+    delete newQuery.keyword;
+    router.push({ path: route.path, query: newQuery });
+  }
 });
 
 const setPresetPrice = (preset) => {
@@ -195,22 +180,22 @@ const setPresetPrice = (preset) => {
 };
 
 const hasActiveFilters = computed(() =>
-  selectedCategories.value.length > 0 || minPrice.value || maxPrice.value || minRating.value > 0
+  selectedCategory.value || minPrice.value || maxPrice.value || minRating.value > 0
 );
 
 const filteredProducts = computed(() => {
   let result = allProducts.value.filter(p => {
-    // Tìm kiếm theo tên sản phẩm HOẶC tên danh mục
+
     if (query.value) {
       const q = query.value.toLowerCase();
       const matchName = p.name.toLowerCase().includes(q);
       const cat = categories.value.find(c => c.id === p.categoryId);
       const matchCat = cat && cat.name.toLowerCase().includes(q);
-      
+
       if (!matchName && !matchCat) return false;
     }
 
-    if (selectedCategories.value.length > 0 && !selectedCategories.value.includes(p.categoryId)) return false;
+    if (selectedCategory.value && Number(p.categoryId) !== Number(selectedCategory.value)) return false;
     if (minPrice.value && p.basePrice < minPrice.value) return false;
     if (maxPrice.value && p.basePrice > maxPrice.value) return false;
     if (minRating.value > 0 && p.ratingAverage < minRating.value) return false;
@@ -227,11 +212,16 @@ const filteredProducts = computed(() => {
 });
 
 const resetFilters = () => {
-  selectedCategories.value = [];
+  selectedCategory.value = null;
   minPrice.value = null;
   maxPrice.value = null;
   minRating.value = 0;
   sortBy.value = 'newest';
+};
+
+const getCategoryName = (id) => {
+  const cat = categories.value.find(c => Number(c.id) === Number(id));
+  return cat ? cat.name : '';
 };
 
 const formatPrice = (price) => {
@@ -266,7 +256,6 @@ const formatPrice = (price) => {
   align-items: flex-start;
 }
 
-/* Sidebar Filters */
 .filters {
   width: 240px;
   flex-shrink: 0;
@@ -348,7 +337,6 @@ const formatPrice = (price) => {
 .filter-list input[type="checkbox"] { display: none; }
 .check-label { flex: 1; }
 
-/* Price presets */
 .price-presets {
   display: flex;
   flex-direction: column;
@@ -393,7 +381,6 @@ const formatPrice = (price) => {
 .price-inputs input:focus { border-color: var(--primary-color); }
 .dash { color: var(--text-light); font-weight: 500; }
 
-/* Rating Options */
 .rating-options { display: flex; flex-direction: column; gap: 8px; }
 .rating-label {
   display: flex;
@@ -413,7 +400,6 @@ const formatPrice = (price) => {
 .rating-label .stars { color: #FBBF24; font-size: 15px; letter-spacing: 1px; }
 .rating-text { font-size: 13px; color: var(--text-color); }
 
-/* Results */
 .results { flex: 1; min-width: 0; }
 
 .sort-bar {
@@ -452,7 +438,6 @@ const formatPrice = (price) => {
   border-color: var(--primary-color);
 }
 
-/* Active filter tags */
 .active-filters {
   display: flex;
   flex-wrap: wrap;
@@ -482,7 +467,6 @@ const formatPrice = (price) => {
   display: flex;
 }
 
-/* Product Grid */
 .product-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(195px, 1fr));

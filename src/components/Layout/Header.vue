@@ -1,13 +1,9 @@
 <template>
 
-  <!-- Main Header: Logo + Search + Cart -->
   <header class="header">
     <div class="container header-inner">
       <div class="logo">
         <router-link to="/" class="logo-link" title="Về Trang Chủ">
-          <div class="logo-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
-          </div>
           <span class="logo-text">Ecom<span class="logo-dot">.</span></span>
         </router-link>
       </div>
@@ -33,7 +29,12 @@
         <div class="action-item user-menu-container" ref="menuRef" v-if="userStore.isLoggedIn">
           <div @click="toggleDropdown" class="user-trigger">
             <div class="user-avatar">
-              <img :src="userStore.currentUser.avatarUrl" v-if="userStore.currentUser.avatarUrl" alt="">
+              <img
+                :src="userStore.currentUser.avatarUrl"
+                v-if="userStore.currentUser.avatarUrl && !avatarError"
+                @error="avatarError = true"
+                alt=""
+              >
               <span v-else>
                 {{ (userStore.currentUser.fullName || userStore.currentUser.username || 'U').charAt(0) }}
               </span>
@@ -73,7 +74,6 @@
     </div>
   </header>
 
-  <!-- Navigation Bar -->
   <nav class="navbar">
     <div class="container navbar-inner">
       <router-link to="/" class="nav-link" :class="{ active: $route.path === '/' }">Trang Chủ</router-link>
@@ -87,7 +87,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '../../stores/user';
 import { useCartStore } from '../../stores/cart';
@@ -99,6 +99,11 @@ const cartStore = useCartStore();
 const searchQuery = ref('');
 const dropdownOpen = ref(false);
 const menuRef = ref(null);
+const avatarError = ref(false);
+
+watch(() => userStore.currentUser, () => {
+  avatarError.value = false;
+});
 
 const toggleDropdown = () => { dropdownOpen.value = !dropdownOpen.value; };
 
@@ -124,7 +129,6 @@ const handleLogout = () => {
 
 <style scoped>
 
-/* Main Header */
 .header {
   background: var(--white);
   border-bottom: 1px solid var(--border-color);
@@ -140,7 +144,6 @@ const handleLogout = () => {
   gap: 24px;
 }
 
-/* Logo */
 .logo-link {
   display: flex;
   align-items: center;
@@ -172,7 +175,6 @@ const handleLogout = () => {
 }
 .logo-dot { color: var(--primary-color); }
 
-/* Search */
 .search-bar {
   flex: 1;
   display: flex;
@@ -207,7 +209,6 @@ const handleLogout = () => {
 }
 .search-btn:hover { background: var(--primary-color-hover); }
 
-/* Header Actions */
 .header-actions {
   display: flex;
   align-items: center;
@@ -245,7 +246,6 @@ const handleLogout = () => {
   padding: 0 3px;
 }
 
-/* User Menu */
 .user-menu-container { position: relative; }
 .user-trigger {
   display: flex;
@@ -273,7 +273,6 @@ const handleLogout = () => {
 }
 .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
-/* Dropdown */
 .dropdown-menu {
   position: absolute;
   top: calc(100% + 4px);
@@ -300,7 +299,6 @@ const handleLogout = () => {
 .logout { color: var(--danger); }
 .logout:hover { background: #FEF2F2; color: var(--danger); }
 
-/* Navbar */
 .navbar {
   background: var(--white);
   border-bottom: 2px solid var(--border-color);

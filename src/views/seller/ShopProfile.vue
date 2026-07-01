@@ -5,7 +5,7 @@
     </div>
 
     <form class="profile-form" @submit.prevent="handleUpdate" v-if="formData">
-      <!-- Avatar Upload -->
+
       <div class="form-group">
         <label>Ảnh Đại Diện Cửa Hàng</label>
         <div class="avatar-upload-row">
@@ -43,7 +43,6 @@
 </template>
 
 <script setup>
-//Sửa lại toàn bộ script setup
 import { ref, onMounted } from 'vue'
 import { shopApi } from '../../api'
 
@@ -67,7 +66,7 @@ const loadShop = async () => {
     const userId = localStorage.getItem('userId')
     const res = await shopApi.getByUserId(userId)
 
-    const shop = Array.isArray(res.data) ? res.data[0] : res.data
+    const shop = Array.isArray(res?.data) ? res?.data[0] : res?.data
 
     if (shop) {
       formData.value = {
@@ -167,7 +166,6 @@ onMounted(loadShop)
   box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
 }
 
-/* Avatar upload */
 .avatar-upload-row {
   display: flex;
   align-items: center;

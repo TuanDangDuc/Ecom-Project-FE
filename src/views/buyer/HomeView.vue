@@ -1,6 +1,6 @@
 <template>
   <div class="home">
-    <!-- Top Collections -->
+
     <section class="container collections">
       <div class="collection-card" v-for="(col, index) in collections" :key="index">
         <div class="col-bg">
@@ -9,13 +9,12 @@
         <div class="col-overlay">
           <div class="col-content">
             <h3>{{ col.title }}<br>Collection</h3>
-            <a href="#" class="shop-now">SHOP NOW <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="9 18 15 12 9 6"></polyline></svg></a>
+            <a href="#" class="shop-now" @click.prevent="showNotice">SHOP NOW <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="9 18 15 12 9 6"></polyline></svg></a>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- New Products Section -->
     <section class="container new-products">
       <div class="section-header">
         <h2 class="section-title">NEW PRODUCTS</h2>
@@ -24,23 +23,18 @@
       <div class="product-grid">
         <div class="product-card" v-for="product in products" :key="product.id">
 
-
-          <!-- Image -->
           <router-link :to="`/product/${product.id}`" class="product-image">
             <img :src="product.thumbnailUrl" :alt="product.name">
           </router-link>
 
-          <!-- Info -->
           <div class="product-info">
             <h3 class="product-name">
               <router-link :to="`/product/${product.id}`">{{ product.name }}</router-link>
             </h3>
             <div class="product-price">
               <span class="new-price">₫{{ formatPrice(product.basePrice) }}</span>
-              <span class="sold-count">{{ product.id * 15 + 12 }} đã bán</span>
             </div>
           </div>
-
 
         </div>
       </div>
@@ -64,7 +58,7 @@ const collections = [
 const normalizeProduct = (p) => ({
   id: p.id,
   name: p.name || 'Sản phẩm',
-  thumbnailUrl: p.thumbnailUrl || p.imageUrl || 'https://picsum.photos/seed/product/400/400',
+  thumbnailUrl: p.imageUrl || p.thumbnailUrl || 'https://picsum.photos/seed/product/400/400',
   basePrice: p.basePrice || p.price || 0,
   ratingAverage: p.ratingAverage || 0,
   shopId: p.shopId,
@@ -77,7 +71,7 @@ const loadProducts = async () => {
     loading.value = true
     const res = await productApi.getAll()
 
-    const list = res.data || res.products || res.result || res || []
+    const list = res?.data || res?.products || res?.result || res || []
 
     products.value = Array.isArray(list)
       ? list.map(normalizeProduct)
@@ -96,6 +90,10 @@ const formatPrice = (price) => {
     .replace(/\B(?=(\d{3})+(?!\d))/g, '.')
 }
 
+const showNotice = () => {
+  alert('Tính năng đang được phát triển');
+}
+
 onMounted(loadProducts)
 </script>
 
@@ -104,7 +102,6 @@ onMounted(loadProducts)
   padding-bottom: 80px;
 }
 
-/* Collections */
 .collections {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -159,7 +156,6 @@ onMounted(loadProducts)
 }
 .shop-now:hover { opacity: 1; margin-left: 4px; }
 
-/* New Products Header */
 .section-header {
   display: flex;
   justify-content: space-between;
@@ -199,7 +195,6 @@ onMounted(loadProducts)
   border-bottom: 2px solid var(--primary-color);
 }
 
-/* Product Grid */
 .product-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -223,7 +218,6 @@ onMounted(loadProducts)
   box-shadow: var(--shadow-lg);
 }
 
-/* Tags */
 .product-tags {
   position: absolute;
   top: 15px; right: 15px;
@@ -242,7 +236,6 @@ onMounted(loadProducts)
 .tag.sale { background: transparent; color: var(--primary-color); border-color: var(--primary-color); }
 .tag.new { background: var(--primary-color); }
 
-/* Image */
 .product-image {
   width: 100%;
   aspect-ratio: 1;
@@ -258,7 +251,6 @@ onMounted(loadProducts)
 }
 .product-card:hover .product-image img { transform: scale(1.05); }
 
-/* Info */
 .product-info {
   text-align: left;
   flex: 1;
@@ -296,7 +288,6 @@ onMounted(loadProducts)
   font-size: 12px;
 }
 
-/* Hover Actions */
 .product-actions {
   position: absolute;
   bottom: 0; left: 0; right: 0;

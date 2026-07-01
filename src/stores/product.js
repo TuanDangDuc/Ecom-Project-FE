@@ -13,22 +13,19 @@ export const useProductStore = defineStore('product', () => {
   const categories    = ref([]);
   const productTypes  = ref([]);
 
-  // Danh sách sản phẩm của shop hiện tại (seller)
   const shopProducts  = ref([]);
   const loading       = ref(false);
   const error         = ref(null);
 
-  // ── helpers ─────────────────────────────────────────────────
   function getShopId() {
     const userStore = useUserStore();
     return userStore.currentUser?.shopId ?? null;
   }
 
-  // ── Categories ───────────────────────────────────────────────
   async function fetchCategories() {
     try {
       const res = await categoryApi.getAll();
-      // BE có thể trả: array | { data: [] } | { categories: [] }
+
       if (Array.isArray(res)) {
         categories.value = res;
       } else {
@@ -73,11 +70,10 @@ export const useProductStore = defineStore('product', () => {
     }
   }
 
-  // ── Product Types ────────────────────────────────────────────
   async function fetchProductTypes() {
     try {
       const res = await productTypeApi.getAll();
-      // BE có thể trả: array | { data: [] } | { productTypes: [] } | { product_types: [] }
+
       if (Array.isArray(res)) {
         productTypes.value = res;
       } else {
@@ -122,7 +118,6 @@ export const useProductStore = defineStore('product', () => {
     }
   }
 
-  // ── Products (seller) ────────────────────────────────────────
   async function fetchShopProducts() {
     const shopId = getShopId();
     if (!shopId) { shopProducts.value = []; return; }
@@ -131,7 +126,7 @@ export const useProductStore = defineStore('product', () => {
     error.value = null;
     try {
       const res = await productApi.getByShopId(shopId);
-      // BE có thể trả: array | { data: [] } | { products: [] }
+
       if (Array.isArray(res)) {
         shopProducts.value = res;
       } else {
@@ -145,7 +140,6 @@ export const useProductStore = defineStore('product', () => {
     }
   }
 
-  // Tạo sản phẩm → tạo variants → (tùy chọn) upload ảnh cho từng variant
   async function createProduct(productData, variantList) {
     const shopId = getShopId();
     if (!shopId) throw new Error('Chưa có shopId');
@@ -153,7 +147,7 @@ export const useProductStore = defineStore('product', () => {
     loading.value = true;
     error.value = null;
     try {
-      // 1. Tạo product
+
       const payload = {
         name:          productData.name,
         description:   productData.description ?? null,
@@ -171,7 +165,6 @@ export const useProductStore = defineStore('product', () => {
         throw new Error(productRes.message || 'Tạo sản phẩm thất bại');
       }
 
-      // Parse ID: hỗ trợ { data: { id } }, { product: { id } }, { id }, hoặc số trực tiếp
       const newProductId =
         productRes?.data?.id ??
         productRes?.product?.id ??
@@ -179,7 +172,6 @@ export const useProductStore = defineStore('product', () => {
 
       if (!newProductId) throw new Error('Không lấy được ID sản phẩm mới từ BE');
 
-      // 2. Tạo từng variant
       for (const v of variantList) {
         const varRes = await variantApi.create(newProductId, {
           options: v.options,
@@ -187,7 +179,6 @@ export const useProductStore = defineStore('product', () => {
           stock:   Number(v.stock) || 0,
         });
 
-        // 3. Upload ảnh cho variant (nếu có)
         if (v.imageFiles && v.imageFiles.length > 0) {
           const variantId =
             varRes.data?.id ??
@@ -246,10 +237,9 @@ export const useProductStore = defineStore('product', () => {
     }
   }
 
-  // ── Variants ─────────────────────────────────────────────────
   async function fetchVariants(productId) {
     const res = await variantApi.getByProductId(productId);
-    return Array.isArray(res) ? res : (res.data ?? []);
+    return Array.isArray(res) ? res : (res?.data ?? []);
   }
 
   async function addVariant(productId, variantData) {
@@ -264,7 +254,6 @@ export const useProductStore = defineStore('product', () => {
     return await variantApi.delete(variantId);
   }
 
-  // ── Product Images ───────────────────────────────────────────
   async function addImageToVariant(variantId, url, imageOrder = 0) {
     return await productImageApi.addToVariant(variantId, { url, imageOrder });
   }

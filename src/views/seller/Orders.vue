@@ -7,15 +7,19 @@
 
     <div class="orders-card">
       <div class="tabs">
-        <button class="tab active">Tất Cả</button>
-        <button class="tab">Chờ Xác Nhận</button>
-        <button class="tab">Đang Giao</button>
-        <button class="tab">Đã Giao</button>
-        <button class="tab">Đã Hủy</button>
+        <button
+          v-for="t in tabs"
+          :key="t"
+          class="tab"
+          :class="{ active: activeTab === t }"
+          @click="activeTab = t"
+        >
+          {{ t }}
+        </button>
       </div>
-      
+
       <div class="orders-list">
-        <div class="order-item" v-for="order in shopOrders" :key="order.id">
+        <div class="order-item" v-for="order in displayedOrders" :key="order.id">
           <div class="order-header">
             <div class="order-meta">
               <span class="order-id">Mã ĐH: {{ order.orderCode }}</span>
@@ -25,7 +29,7 @@
               {{ order.status }}
             </div>
           </div>
-          
+
           <div class="order-products">
             <div class="product-row" v-for="item in order.items" :key="item.id">
               <div class="prod-img">
@@ -39,7 +43,7 @@
               <div class="prod-price">₫{{ formatPrice(item.priceAtPurchase) }}</div>
             </div>
           </div>
-          
+
           <div class="order-footer">
             <div class="customer-info">
               <strong>Khách hàng:</strong> {{ order.recipientName }} - {{ order.recipientPhone }}
@@ -54,8 +58,8 @@
             </div>
           </div>
         </div>
-        
-        <div class="empty-state" v-if="shopOrders.length === 0">
+
+        <div class="empty-state" v-if="displayedOrders.length === 0">
           <p class="empty-text">Chưa có đơn hàng nào.</p>
         </div>
       </div>
@@ -64,19 +68,24 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useUserStore } from '../../stores/user';
 import { orderApi } from '../../api/index';
 
 const userStore = useUserStore();
 const shopOrders = ref([]);
+const activeTab = ref('Tất Cả');
+const tabs = ['Tất Cả', 'Chờ xác nhận', 'Đang giao', 'Đã giao', 'Đã hủy'];
+
+const displayedOrders = computed(() => {
+  if (activeTab.value === 'Tất Cả') return shopOrders.value;
+  return shopOrders.value.filter(o => o.status === activeTab.value);
+});
 
 onMounted(async () => {
   try {
-    // In a real app, this might be a specific endpoint for shop orders.
-    // Assuming getMyOrders returns orders relevant to the current user (seller).
     const res = await orderApi.getMyOrders();
-    shopOrders.value = Array.isArray(res) ? res : (res?.data || []);
+    shopOrders.value = res?.orders || (Array.isArray(res) ? res : (res?.data || []));
   } catch (error) {
     console.error('Lỗi khi tải đơn hàng:', error);
   }
@@ -102,8 +111,7 @@ const updateStatus = async (order, newStatus) => {
       'Đã hủy': 'CANCELED'
     };
     const apiStatus = statusMap[newStatus] || newStatus;
-    
-    // Cập nhật trạng thái qua API
+
     const res = await orderApi.updateStatus(order.id, apiStatus);
     if (res && res.success !== false) {
       order.status = newStatus;

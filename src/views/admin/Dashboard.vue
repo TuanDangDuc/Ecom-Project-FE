@@ -44,7 +44,7 @@
       <div class="chart-card">
         <h3 class="chart-title">Biểu Đồ Doanh Thu (Minh họa)</h3>
         <div class="chart-placeholder">
-          <!-- Placeholder for actual chart -->
+
           <div class="bar-chart">
             <div class="bar" style="height: 40%"></div>
             <div class="bar" style="height: 60%"></div>
@@ -70,19 +70,15 @@ const ordersCount = ref(0);
 
 onMounted(async () => {
   try {
-    // 1. Fetch Users
+
     const resUsers = await userApi.getAll(1, 1000);
     const usersList = Array.isArray(resUsers) ? resUsers : (resUsers?.data || resUsers?.users || []);
     usersCount.value = usersList.length;
 
-    // 2. Fetch Shops
     const resShops = await shopApi.getAll(1, 1000);
     const shopsList = Array.isArray(resShops) ? resShops : (resShops?.data || resShops?.shops || []);
     shopsCount.value = shopsList.length;
-    
-    // 3. Fetch Orders (giả sử có thể lấy toàn bộ)
-    // Nếu BE không hỗ trợ getAll cho orders trên admin, ta để tạm mock count
-    // const resOrders = await orderApi.getAll(); // Thêm nếu BE có
+
   } catch (err) {
     console.error('Lỗi tải dashboard:', err);
   }

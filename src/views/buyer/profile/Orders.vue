@@ -14,7 +14,6 @@
       </div>
     </div>
 
-    <!-- Loading -->
     <div v-if="loadingOrders" class="empty-state">
       <div class="empty-icon">⏳</div>
       <p class="empty-text">Đang tải đơn hàng...</p>
@@ -26,12 +25,12 @@
           <div class="header-left">
             <span class="order-code">{{ order.orderCode }}</span>
           </div>
-          <!-- Status từ BE là tiếng Anh (PENDING, COMPLETED...) → map sang tiếng Việt -->
+
           <div class="header-right">
             <span class="order-status" :class="statusClass(firstItemStatus(order))">
               {{ mapOrderStatus(firstItemStatus(order)) }}
             </span>
-            <!-- Buyer chỉ được huỷ khi PENDING -->
+
             <button
               v-if="firstItemStatus(order) === 'PENDING'"
               class="btn-cancel"
@@ -54,7 +53,6 @@
             <div class="item-price-action">
               <div class="item-price">₫{{ formatPrice(item.priceAtPurchase) }}</div>
 
-              <!-- Chỉ hiện nút review khi item đã COMPLETED -->
               <template v-if="item.orderStatus === 'COMPLETED'">
                 <button
                   v-if="!getReview(item.id)"
@@ -91,7 +89,6 @@
       <p class="empty-text">Không có đơn hàng nào</p>
     </div>
 
-    <!-- Review Modal -->
     <Teleport to="body">
       <div class="modal-overlay" v-if="showReviewModal" @click.self="showReviewModal = false">
         <div class="modal-content">
@@ -154,7 +151,6 @@ import { orderApi, reviewApi, mapOrderStatus, formatVariantOptions } from '../..
 
 const userStore = useUserStore();
 
-// ── Tabs — dùng status BE (tiếng Anh) để filter ─────────────
 const statusTabs = [
   { label: 'Tất Cả',        value: 'all' },
   { label: 'Chờ Xác Nhận',  value: 'PENDING' },
@@ -167,15 +163,13 @@ const activeTab = ref('all');
 const orders = ref([]);
 const loadingOrders = ref(false);
 
-// Mỗi order có items[], mỗi item có orderStatus (BE English)
-// Lấy status của item đầu tiên để đại diện cho đơn hàng
 const firstItemStatus = (order) => order.items?.[0]?.orderStatus ?? '';
 
 onMounted(async () => {
   loadingOrders.value = true;
   try {
     const res = await orderApi.getMyOrders();
-    if (res.success) orders.value = res.orders ?? [];
+    if (res.success) orders.value = res?.orders ?? [];
   } catch (e) {
     console.error('[Orders] getMyOrders:', e);
   } finally {
@@ -201,7 +195,6 @@ const statusClass = (beStatus) => ({
   'status-cancel':   beStatus === 'CANCELED',
 });
 
-// ── Huỷ đơn ─────────────────────────────────────────────────
 const cancelOrder = async (order) => {
   if (!confirm('Bạn có chắc muốn huỷ đơn hàng này?')) return;
   try {
@@ -210,7 +203,7 @@ const cancelOrder = async (order) => {
       'CANCELED'
     );
     if (res.success) {
-      // Cập nhật status local
+
       order.items.forEach(i => { i.orderStatus = 'CANCELED'; });
     } else {
       alert(res.message);
@@ -220,8 +213,6 @@ const cancelOrder = async (order) => {
   }
 };
 
-// ── Review ───────────────────────────────────────────────────
-// localReviews: Map orderItemId → review object (sau khi submit)
 const localReviews = reactive({});
 
 const getReview = (orderItemId) => localReviews[orderItemId] ?? null;
@@ -244,15 +235,15 @@ const submitReview = async () => {
   if (!reviewForm.value.comment.trim() || !selectedItem.value) return;
   isSubmitting.value = true;
   try {
-    // BE cần: orderItemId, rating (1-5), comment
+
     const res = await reviewApi.createReview({
-      orderItemId: selectedItem.value.id,    // id của OrderItem
-      rating: reviewForm.value.rating,        // BE dùng 'rating' không phải 'ratingValue'
+      orderItemId: selectedItem.value.id,
+      rating: reviewForm.value.rating,
       comment: reviewForm.value.comment,
     });
 
     if (res.success) {
-      // Lưu local để hiển thị ngay không cần refetch
+
       localReviews[selectedItem.value.id] = {
         id: res.reviewId,
         rating: reviewForm.value.rating,
@@ -347,7 +338,7 @@ const formatPrice = (price) => {
 .empty-state { text-align: center; padding: 60px 0; color: var(--text-light); margin-top: 20px; }
 .empty-icon { font-size: 48px; margin-bottom: 12px; }
 .empty-text { font-size: 15px; }
-/* Modal */
+
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.45);
   display: flex; align-items: center; justify-content: center;

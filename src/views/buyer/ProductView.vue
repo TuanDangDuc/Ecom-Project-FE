@@ -1,6 +1,7 @@
 <template>
-  <div class="product-view container mt-4" v-if="product">
-    <div class="product-main">
+  <div class="product-view" v-if="product">
+    <div class="container mt-4">
+      <div class="product-main">
       <div class="product-gallery">
         <div class="main-image">
           <img :src="selectedImage || product.thumbnailUrl || product.imageUrl" :alt="product.name">
@@ -27,11 +28,11 @@
 
         <div class="product-meta">
           <div class="rating">
-            <span class="stars">★★★★★</span>
-            <span class="rating-num">{{ product.ratingAverage || 0 }}</span>
+            <span class="stars">
+              {{ '★'.repeat(Math.round(product.ratingAverage || 0)) }}{{ '☆'.repeat(5 - Math.round(product.ratingAverage || 0)) }}
+            </span>
+            <span class="rating-num">{{ product.ratingAverage ? Number(product.ratingAverage).toFixed(1) : '0.0' }}</span>
           </div>
-          <span class="divider"></span>
-          <span class="sold">Đã bán</span>
         </div>
 
         <div class="product-price-box">
@@ -86,12 +87,23 @@
 
     <div class="shop-info-card mt-4" v-if="shop">
       <div class="shop-info-left">
-        <img :src="shop.avatarUrl || 'https://picsum.photos/seed/shop/100/100'" :alt="shop.name" class="shop-avatar-img">
+        <div class="shop-avatar-wrapper">
+          <img
+            v-if="shop.avatarUrl && !avatarLoadError"
+            :src="shop.avatarUrl"
+            :alt="shop.name"
+            class="shop-avatar-img"
+            @error="avatarLoadError = true"
+          >
+          <div class="shop-avatar-placeholder" v-else>
+            {{ (shop.name || 'S').charAt(0) }}
+          </div>
+        </div>
         <div class="shop-meta">
           <div class="shop-name">{{ shop.name }}</div>
-          <div class="shop-status">{{ shop.shopStatus || shop.status || 'ACTIVE' }}</div>
+          <div class="shop-status" :class="{ inactive: (shop.shopStatus || shop.status) === 'INACTIVE' }">{{ shop.shopStatus || shop.status || 'ACTIVE' }}</div>
           <div class="shop-actions">
-            <button class="btn btn-outline btn-sm">Chat Ngay</button>
+            <button class="btn btn-outline btn-sm" @click="showNotice">Chat Ngay</button>
             <router-link :to="`/shop/${shop.id}`" class="btn btn-outline btn-sm">
               Xem Shop
             </router-link>
@@ -103,10 +115,6 @@
         <div class="stat-item">
           <span class="stat-label">Đánh giá</span>
           <span class="stat-value">{{ shop.ratingAverage || 0 }} / 5.0</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Shop ID</span>
-          <span class="stat-value">#{{ shop.id }}</span>
         </div>
       </div>
     </div>
@@ -124,12 +132,20 @@
       <div class="reviews-list" v-if="productReviews.length > 0">
         <div class="review-item" v-for="review in productReviews" :key="review.id">
           <div class="review-avatar">
-            <img :src="`https://picsum.photos/seed/${review.userId}/50/50`" alt="Avatar">
+            <img
+              :src="review.userAvatarUrl"
+              v-if="review.userAvatarUrl"
+              @error="review.userAvatarUrl = null"
+              alt="Avatar"
+            >
+            <div class="review-avatar-placeholder" v-else>
+              {{ (review.userFullName || review.userUsername || 'U').charAt(0).toUpperCase() }}
+            </div>
           </div>
 
           <div class="review-content">
             <div class="review-header">
-              <span class="user-name">Người dùng #{{ review.userId }}</span>
+              <span class="user-name">{{ review.userFullName || review.userUsername || 'Người dùng #' + review.userId }}</span>
               <span class="review-date">
                 {{ review.createdAt ? new Date(review.createdAt).toLocaleDateString('vi-VN') : '' }}
               </span>
@@ -165,6 +181,7 @@
       </div>
     </div>
   </div>
+  </div>
 
   <div v-else class="container mt-4">
     <h2>{{ loading ? 'Đang tải sản phẩm...' : 'Không tìm thấy sản phẩm' }}</h2>
@@ -176,10 +193,12 @@ import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { productApi, shopApi, reviewApi, variantApi } from '../../api/index.js'
 import { useCartStore } from '../../stores/cart'
+import { useUserStore } from '../../stores/user'
 
 const route = useRoute()
 const router = useRouter()
 const cartStore = useCartStore()
+const userStore = useUserStore()
 
 const productId = Number(route.params.id)
 
@@ -191,6 +210,7 @@ const selectedImage = ref(null)
 const selectedVariant = ref(null)
 const quantity = ref(1)
 const loading = ref(false)
+const avatarLoadError = ref(false)
 
 watch(selectedVariant, (newVal) => {
   if (newVal && newVal.imageUrl) {
@@ -216,7 +236,7 @@ const normalizeProduct = (p) => ({
 
 const loadProduct = async () => {
   const res = await productApi.getById(productId)
-  const data = res.data || res.product || res
+  const data = res?.data || res.product || res
 
   product.value = normalizeProduct(data)
   selectedImage.value = product.value.thumbnailUrl || product.value.imageUrl
@@ -229,17 +249,22 @@ const loadProduct = async () => {
 const loadShop = async (shopId) => {
   try {
     const res = await shopApi.getById(shopId)
-    shop.value = res.data || res.shop || res
+    shop.value = res?.data || res.shop || res
+    avatarLoadError.value = false
   } catch (err) {
     console.error('[ProductView] loadShop:', err)
     shop.value = null
   }
 }
 
+const showNotice = () => {
+  alert('Tính năng đang phát triển');
+}
+
 const loadReviews = async () => {
   try {
     const res = await reviewApi.getByProduct(productId)
-    productReviews.value = res.reviews || res.data || []
+    productReviews.value = res.reviews || res?.data || []
   } catch (err) {
     console.error('[ProductView] loadReviews:', err)
     productReviews.value = []
@@ -250,12 +275,12 @@ const loadVariants = async () => {
   try {
     const res = await variantApi.getByProductId(productId)
 
-    const list = res.data || res.variants || []
+    const list = res?.data || res.variants || []
 
     variants.value = Array.isArray(list) ? list : []
     if (variants.value.length > 0) {
       selectedVariant.value = variants.value[0]
-      // Cập nhật ảnh ngay khi load xong biến thể đầu tiên
+
       if (variants.value[0].imageUrl) {
         selectedImage.value = variants.value[0].imageUrl
       }
@@ -315,6 +340,11 @@ const addToCart = async () => {
 }
 
 const buyNow = async () => {
+  if (!userStore.isLoggedIn) {
+    alert('Vui lòng đăng nhập để thực hiện mua ngay!')
+    router.push('/login')
+    return
+  }
   const success = await addToCart()
   if (success) {
     router.push('/cart')
@@ -323,10 +353,6 @@ const buyNow = async () => {
 </script>
 
 <style scoped>
-/* ==========================================================================
-   MINIMALIST HIGH-END DESIGN
-   A sleek, boutique-style layout that is elegant, bold, and highly creative.
-   ========================================================================== */
 
 .product-view {
   padding: 40px 0 80px;
@@ -335,14 +361,10 @@ const buyNow = async () => {
   background-color: #fff;
 }
 
-/* Base Utility */
 .section-wrapper {
   margin-top: 60px;
 }
 
-/* =========================================
-   Product Main Section
-   ========================================= */
 .product-main {
   display: flex;
   flex-direction: column;
@@ -357,7 +379,6 @@ const buyNow = async () => {
   }
 }
 
-/* Gallery - Clean, borderless focus */
 .product-gallery {
   flex: 1;
   max-width: 580px;
@@ -423,7 +444,6 @@ const buyNow = async () => {
   transform: translateY(-2px);
 }
 
-/* Details - Bold, Magazine-like Typography */
 .product-details {
   flex: 1;
   display: flex;
@@ -475,7 +495,6 @@ const buyNow = async () => {
   color: #6b7280;
 }
 
-/* Price - Sleek and Minimal */
 .product-price-box {
   margin-bottom: 40px;
   padding-bottom: 32px;
@@ -502,7 +521,6 @@ const buyNow = async () => {
   margin-top: 14px;
 }
 
-/* Options */
 .product-options {
   display: flex;
   flex-direction: column;
@@ -530,7 +548,6 @@ const buyNow = async () => {
   gap: 12px;
 }
 
-/* Chic Pill Buttons */
 .variant-btn {
   padding: 12px 24px;
   border: 1px solid #e5e7eb;
@@ -554,7 +571,6 @@ const buyNow = async () => {
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-/* Quantity Selector - Refined */
 .quantity-wrapper {
   display: flex;
   align-items: center;
@@ -607,11 +623,10 @@ const buyNow = async () => {
   margin: 0;
 }
 
-/* Actions - Bold contrast */
 .product-actions {
   display: flex;
   gap: 16px;
-  margin-top: auto;
+  margin-top: 32px;
 }
 
 .btn-lg {
@@ -650,9 +665,6 @@ const buyNow = async () => {
   transform: translateY(-2px);
 }
 
-/* =========================================
-   Shop Info Card - Minimal Integration
-   ========================================= */
 .shop-info-card {
   display: flex;
   flex-direction: column;
@@ -676,11 +688,32 @@ const buyNow = async () => {
   gap: 24px;
 }
 
-.shop-avatar-img {
+.shop-avatar-wrapper {
+  position: relative;
   width: 80px;
   height: 80px;
+  flex-shrink: 0;
+}
+
+.shop-avatar-img {
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   object-fit: cover;
+  border: 1px solid #e5e7eb;
+}
+
+.shop-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--primary-gradient, linear-gradient(135deg, #EF5350 0%, #C62828 100%));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 700;
   border: 1px solid #e5e7eb;
 }
 
@@ -711,6 +744,12 @@ const buyNow = async () => {
   height: 6px;
   background: #10b981;
   border-radius: 50%;
+}
+.shop-status.inactive {
+  color: #ef4444;
+}
+.shop-status.inactive::before {
+  background: #ef4444;
 }
 
 .shop-actions {
@@ -767,9 +806,6 @@ const buyNow = async () => {
   color: #111827;
 }
 
-/* =========================================
-   Description & Reviews
-   ========================================= */
 .product-description, .product-reviews {
   margin-top: 60px;
   max-width: 800px;
@@ -790,7 +826,6 @@ const buyNow = async () => {
   white-space: pre-wrap;
 }
 
-/* Reviews List - Magazine Style */
 .reviews-list {
   display: flex;
   flex-direction: column;
@@ -808,6 +843,19 @@ const buyNow = async () => {
   height: 48px;
   border-radius: 50%;
   object-fit: cover;
+}
+
+.review-avatar-placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #374151, #111827);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
 }
 
 .review-content {

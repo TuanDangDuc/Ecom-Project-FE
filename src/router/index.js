@@ -21,7 +21,6 @@ import ProductFormView from '../views/seller/ProductForm.vue';
 import ShopProfileView from '../views/seller/ShopProfile.vue';
 import SellerOrdersView from '../views/seller/Orders.vue';
 
-// Admin Views
 import AdminLayout from '../views/admin/AdminLayout.vue';
 import AdminDashboard from '../views/admin/Dashboard.vue';
 import AdminUsers from '../views/admin/Users.vue';
@@ -64,7 +63,7 @@ const router = createRouter({
         { path: 'orders', component: SellerOrdersView },
         { path: 'products', component: ProductsView },
         { path: 'products/add', component: ProductFormView },
-        { path: 'products/edit/:id', component: ProductFormView }, // Edit route
+        { path: 'products/edit/:id', component: ProductFormView },
         { path: 'profile', component: ShopProfileView },
         { path: '', redirect: '/seller/dashboard' }
       ]

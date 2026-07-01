@@ -24,8 +24,13 @@
               <td>
                 <div class="shop-info">
                   <div class="avatar">
-                    <img :src="shop.avatarUrl" v-if="shop.avatarUrl" alt="Avatar">
-                    <span v-else>{{ shop.name.charAt(0) }}</span>
+                    <img
+                      :src="shop.avatarUrl"
+                      v-if="shop.avatarUrl"
+                      @error="shop.avatarUrl = null"
+                      alt="Avatar"
+                    >
+                    <span v-else>{{ (shop.name || 'S').charAt(0).toUpperCase() }}</span>
                   </div>
                   <div class="name">{{ shop.name }}</div>
                 </div>
@@ -78,7 +83,7 @@ const shopsList = ref([])
 
 onMounted(async () => {
   try {
-    const res = await shopApi.getAll(1, 100); // Lấy số lượng lớn hoặc backend trả full
+    const res = await shopApi.getAll(1, 100);
     shopsList.value = Array.isArray(res) ? res : (res?.data || res?.shops || []);
   } catch (error) {
     console.error('Lỗi khi tải danh sách cửa hàng:', error);

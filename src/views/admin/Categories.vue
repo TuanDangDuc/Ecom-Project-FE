@@ -7,7 +7,7 @@
     </div>
 
     <div class="two-col">
-      <!-- CATEGORIES -->
+
       <div class="card">
         <div class="card-header">
           <h2>Danh Mục </h2>
@@ -43,7 +43,6 @@
         </table>
       </div>
 
-      <!-- PRODUCT TYPES -->
       <div class="card">
         <div class="card-header">
           <h2>Loại Sản Phẩm </h2>
@@ -82,7 +81,6 @@
       </div>
     </div>
 
-    <!-- ═══════════════════ Modal: Thêm/Sửa Category ═══════════════════ -->
     <div class="modal-overlay" v-if="showCatModal" @click.self="closeCatModal">
       <div class="modal">
         <h3>{{ editingCat ? 'Sửa Danh Mục' : 'Thêm Danh Mục' }}</h3>
@@ -110,7 +108,6 @@
       </div>
     </div>
 
-    <!-- ═══════════════════ Modal: Thêm/Sửa ProductType ═══════════════════ -->
     <div class="modal-overlay" v-if="showTypeModal" @click.self="closeTypeModal">
       <div class="modal">
         <h3>{{ editingType ? 'Sửa Loại Sản Phẩm' : 'Thêm Loại Sản Phẩm' }}</h3>
@@ -142,7 +139,6 @@
       </div>
     </div>
 
-    <!-- ═══════════════════ Modal: Xác nhận Xóa ═══════════════════ -->
     <div class="modal-overlay" v-if="deleteTarget" @click.self="deleteTarget = null">
       <div class="modal modal-confirm">
         <div class="confirm-icon">
@@ -176,9 +172,8 @@ const productStore = useProductStore();
 const loadingCat  = ref(false);
 const loadingType = ref(false);
 
-// ── Category modal ──────────────────────────────────────────
 const showCatModal  = ref(false);
-const editingCat    = ref(null);   // null = create, object = edit
+const editingCat    = ref(null);
 const newCatName    = ref('');
 const catError      = ref('');
 const submittingCat = ref(false);
@@ -221,7 +216,6 @@ const submitCategory = async () => {
   }
 };
 
-// ── Product Type modal ──────────────────────────────────────
 const showTypeModal  = ref(false);
 const editingType    = ref(null);
 const newTypeName    = ref('');
@@ -270,8 +264,7 @@ const submitType = async () => {
   }
 };
 
-// ── Delete confirm ──────────────────────────────────────────
-const deleteTarget = ref(null);  // { id, name, type: 'cat' | 'type' }
+const deleteTarget = ref(null);
 const deleteError  = ref('');
 const deleting     = ref(false);
 
@@ -302,7 +295,6 @@ const executeDelete = async () => {
   }
 };
 
-// ── Load data ───────────────────────────────────────────────
 onMounted(async () => {
   loadingCat.value  = true;
   loadingType.value = true;
@@ -358,7 +350,6 @@ onMounted(async () => {
 .id-cell { color: var(--text-light); font-size: 13px; }
 .desc { color: var(--text-light); font-size: 13px; }
 
-/* Action icon buttons */
 .icon-btn {
   display: inline-flex; align-items: center; justify-content: center;
   width: 30px; height: 30px; border-radius: 6px;
@@ -371,7 +362,6 @@ onMounted(async () => {
 .icon-btn.delete { color: #EF4444; }
 .icon-btn.delete:hover { background: #FEF2F2; }
 
-/* Modals */
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.45);
   display: flex; align-items: center; justify-content: center; z-index: 200;
@@ -397,7 +387,6 @@ onMounted(async () => {
 .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 16px; }
 button:disabled { opacity: 0.6; cursor: not-allowed; }
 
-/* Confirm delete modal */
 .modal-confirm { text-align: center; max-width: 380px; }
 .confirm-icon {
   width: 52px; height: 52px; border-radius: 50%; background: #FEF2F2;

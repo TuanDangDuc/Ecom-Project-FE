@@ -1,7 +1,7 @@
-// src/stores/cart.js  —  Móc API thật (BE PHP + X-User-Id auth)
+
 import { ref, computed } from 'vue';
 import { defineStore } from 'pinia';
-import { cartApi, formatVariantOptions } from '../api/index.js'; // <-- Đã sửa dòng này
+import { cartApi, formatVariantOptions } from '../api/index.js';
 import { useUserStore } from './user.js';
 
 export const useCartStore = defineStore('cart', () => {
@@ -9,14 +9,11 @@ export const useCartStore = defineStore('cart', () => {
   const loading = ref(false);
   const error = ref(null);
 
-  // ── Helper lấy userId hiện tại ─────────────────────────────
   function getUserId() {
     const userStore = useUserStore();
     return userStore.currentUser?.id ?? null;
   }
 
-  // ── Computed ────────────────────────────────────────────────
-  // BE trả về `currentPrice` cho price hiện tại của variant
   const totalCost = computed(() =>
     items.value.reduce((sum, item) => sum + (item.currentPrice ?? item.price ?? 0) * item.quantity, 0)
   );
@@ -25,9 +22,6 @@ export const useCartStore = defineStore('cart', () => {
     items.value.reduce((sum, item) => sum + item.quantity, 0)
   );
 
-  // ── Fetch giỏ hàng từ BE ────────────────────────────────────
-  // Gọi khi: user vừa đăng nhập, hoặc vào trang Cart
-  // Response: { success, cart: { id, userId, totalCost, items: [...] } }
   async function fetchCart() {
     const userId = getUserId();
     if (!userId) { items.value = []; return; }
@@ -47,17 +41,29 @@ export const useCartStore = defineStore('cart', () => {
     }
   }
 
-  // ── Thêm sản phẩm ──────────────────────────────────────────
-  // BE trả về { success, message } (không trả item) → phải refetch
   async function addItem(variant, product, quantity = 1) {
     const userId = getUserId();
-    if (!userId) { alert('Vui lòng đăng nhập!'); return false; }
+    if (!userId) {
+      const mockId = Date.now() + Math.random();
+      items.value.push({
+        id: mockId,
+        productVariantId: variant.id,
+        productName: product.name,
+        productThumbnail: variant.imageUrl || product.thumbnailUrl || product.imageUrl,
+        currentPrice: variant.price || product.basePrice,
+        price: variant.price || product.basePrice,
+        quantity: quantity,
+        variantOptions: variant.variantOptions || null
+      });
+      alert('Đã thêm sản phẩm vào giỏ hàng (tạm thời)');
+      return true;
+    }
 
     loading.value = true;
     try {
       const res = await cartApi.addItem(variant.id, quantity);
       if (res.success) {
-        await fetchCart(); // đồng bộ lại từ server
+        await fetchCart();
         return true;
       } else {
         alert(res.message || 'Thêm vào giỏ hàng thất bại');
@@ -71,7 +77,6 @@ export const useCartStore = defineStore('cart', () => {
     }
   }
 
-  // ── Cập nhật số lượng (optimistic update + rollback) ────────
   async function updateQuantity(itemId, quantity) {
     if (quantity < 1) return;
     const userId = getUserId();
@@ -79,23 +84,20 @@ export const useCartStore = defineStore('cart', () => {
     if (!item || !userId) return;
 
     const oldQty = item.quantity;
-    item.quantity = quantity; // cập nhật UI ngay
+    item.quantity = quantity;
 
-    //BE route: PUT /api/cart/items/{cartItemId} và DELETE /api/cart/items/{cartItemId} 
-    //k truyền userId trong path
     try {
-      const res = await cartApi.updateItem(itemId, quantity);//sửa updateItem bỏ userId
+      const res = await cartApi.updateItem(itemId, quantity);
       if (!res.success) {
-        item.quantity = oldQty; // rollback
+        item.quantity = oldQty;
         alert(res.message || 'Cập nhật thất bại');
       }
     } catch (e) {
-      item.quantity = oldQty; // rollback
+      item.quantity = oldQty;
       alert('Cập nhật số lượng thất bại: ' + e.message);
     }
   }
 
-  // ── Xoá item (optimistic update + rollback) ─────────────────
   async function removeItem(itemId) {
     const userId = getUserId();
     if (!userId) return;
@@ -104,7 +106,7 @@ export const useCartStore = defineStore('cart', () => {
     items.value = items.value.filter(i => i.id !== itemId);
 
     try {
-      const res = await cartApi.removeItem(itemId);// sửa removeItem bỏ userId
+      const res = await cartApi.removeItem(itemId);
       if (!res.success) {
         items.value = backup;
         alert(res.message || 'Xoá thất bại');
@@ -115,7 +117,6 @@ export const useCartStore = defineStore('cart', () => {
     }
   }
 
-  // ── Xoá local (sau checkout, BE tự xoá cart items) ─────────
   function clearCartLocal() {
     items.value = [];
   }
@@ -124,6 +125,6 @@ export const useCartStore = defineStore('cart', () => {
     items, loading, error,
     totalCost, cartItemsCount,
     fetchCart, addItem, removeItem, updateQuantity, clearCartLocal,
-    formatVariantOptions, // export để dùng trong template
+    formatVariantOptions,
   };
 });

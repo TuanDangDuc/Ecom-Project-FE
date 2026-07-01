@@ -10,7 +10,7 @@
         </ul>
       </div>
       <div class="footer-col">
-        <h3>Về ShopeeClone</h3>
+        <h3>Về chúng tôi</h3>
         <ul>
           <li>Giới thiệu</li>
           <li>Tuyển dụng</li>
@@ -24,9 +24,6 @@
           <li>Instagram</li>
         </ul>
       </div>
-    </div>
-    <div class="footer-bottom">
-      <p>© 2026 ShopeeClone. Tất cả các quyền được bảo lưu.</p>
     </div>
   </footer>
 </template>

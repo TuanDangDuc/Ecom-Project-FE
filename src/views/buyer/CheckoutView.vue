@@ -2,7 +2,7 @@
   <div class="checkout-view container mt-4">
     <div class="checkout-layout">
       <div class="checkout-main">
-        <!-- Địa chỉ giao hàng -->
+
         <div class="section-card address-section">
           <div class="section-header">
             <h3 class="section-title">Thông Tin Giao Hàng</h3>
@@ -27,7 +27,6 @@
           </div>
         </div>
 
-        <!-- Ghi chú -->
         <div class="section-card">
           <h3 class="section-title">Ghi chú đơn hàng</h3>
           <textarea
@@ -38,7 +37,6 @@
           ></textarea>
         </div>
 
-        <!-- Sản phẩm -->
         <div class="section-card order-section">
           <h3 class="section-title">Sản Phẩm Đã Chọn</h3>
           <div class="order-items">
@@ -63,7 +61,6 @@
         </div>
       </div>
 
-      <!-- Sidebar tóm tắt -->
       <div class="checkout-sidebar">
         <div class="section-card payment-section">
           <h3 class="section-title">Tóm Tắt Đơn Hàng</h3>
@@ -74,7 +71,7 @@
             </div>
             <div class="summary-row">
               <span>Phí vận chuyển</span>
-              <!-- BE tự tính: > 500k → miễn phí -->
+
               <span v-if="cartStore.totalCost > 500000" class="discount">Miễn phí</span>
               <span v-else>₫30.000</span>
             </div>
@@ -119,7 +116,7 @@ onMounted(async () => {
     router.push('/login');
     return;
   }
-  // Đảm bảo giỏ hàng đã load
+
   if (cartStore.items.length === 0) {
     await cartStore.fetchCart();
   }
@@ -157,7 +154,7 @@ const fetchAddresses = async () => {
   try {
     isLoadingAddresses.value = true;
     const res = await addressApi.getByUserId(userId);
-    const list = res.data || res.addresses || res.result || [];
+    const list = res?.data || res.addresses || res?.result || [];
     addresses.value = Array.isArray(list) ? list : [];
   } catch (e) {
     console.error('[Checkout] fetchAddresses:', e);
@@ -197,7 +194,6 @@ const addressTypeLabel = (type) => {
   return labels[type] || type || 'Địa chỉ';
 };
 
-// ── Đặt hàng ────────────────────────────────────────────────
 const placeOrder = async () => {
   if (cartStore.items.length === 0) {
     alert('Giỏ hàng trống!');
@@ -210,18 +206,17 @@ const placeOrder = async () => {
 
   isOrdering.value = true;
   try {
-    // BE cần: recipientName, recipientPhone, note, shippingAddressId, cartItemIds[]
-    // Không gửi items/price — BE tự lấy từ cart trong DB
+
     const res = await orderApi.placeOrder({
       recipientName: recipientName.value,
       recipientPhone: defaultAddress.value.phoneNumber,
       note: orderNote.value,
       shippingAddressId: defaultAddress.value.id,
-      cartItemIds: cartStore.items.map(i => i.id), // checkout tất cả items
+      cartItemIds: cartStore.items.map(i => i.id),
     });
 
     if (res.success) {
-      cartStore.clearCartLocal(); // BE đã xoá cart items trong DB
+      cartStore.clearCartLocal();
       alert(`Đặt hàng thành công! Mã đơn: ${res.orderCode}`);
       router.push('/profile/orders');
     } else {

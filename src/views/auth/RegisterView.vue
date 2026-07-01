@@ -5,7 +5,7 @@
         <h2>Đăng Ký</h2>
         <p>Tạo tài khoản ShopeeLite mới</p>
       </div>
-      
+
       <form class="auth-form" @submit.prevent="handleRegister">
         <div class="form-group">
           <label>Tên đăng nhập</label>
@@ -23,9 +23,9 @@
           <label>Xác nhận mật khẩu</label>
           <input type="password" v-model="confirmPassword" placeholder="Nhập lại mật khẩu" required minlength="6" />
         </div>
-        
+
         <div class="form-error" v-if="errorMsg">{{ errorMsg }}</div>
-        
+
         <button type="submit" class="btn btn-primary btn-block" :disabled="isLoading">
           {{ isLoading ? 'Đang đăng ký...' : 'Đăng Ký' }}
         </button>

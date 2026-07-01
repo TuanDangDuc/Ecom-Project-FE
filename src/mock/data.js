@@ -21,7 +21,7 @@ export let users = [
     phoneNumber: '0987654321',
     avatarUrl: 'https://picsum.photos/seed/seller/100/100',
     role: 'seller',
-    shopId: 101, // linked to a shop
+    shopId: 101,
     sex: 'Nữ',
     dateOfBirth: '1990-01-01',
     accountStatus: 'ACTIVE'

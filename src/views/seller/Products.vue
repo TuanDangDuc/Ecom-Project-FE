@@ -5,19 +5,16 @@
       <router-link to="/seller/products/add" class="btn btn-primary">+ Thêm Sản Phẩm</router-link>
     </div>
 
-    <!-- Loading -->
     <div class="loading-state" v-if="productStore.loading">
       <div class="spinner"></div>
       <span>Đang tải...</span>
     </div>
 
-    <!-- Empty -->
     <div class="empty-state" v-else-if="productsWithStats.length === 0">
       <p>Bạn chưa có sản phẩm nào.</p>
       <router-link to="/seller/products/add" class="btn btn-primary btn-sm">Thêm ngay</router-link>
     </div>
 
-    <!-- Table -->
     <div class="products-table" v-else>
       <div class="table-header">
         <div class="col-product">Tên Sản Phẩm</div>
@@ -41,7 +38,6 @@
       </div>
     </div>
 
-    <!-- Delete confirm -->
     <div class="modal-overlay" v-if="deletingProduct" @click.self="deletingProduct = null">
       <div class="modal">
         <h3>Xác nhận xóa</h3>
@@ -144,7 +140,6 @@ const doDelete = async () => {
 .action-btn:hover { text-decoration: underline; }
 .action-btn.delete { color: #EF4444; }
 
-/* Modal */
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.45);
   display: flex; align-items: center; justify-content: center; z-index: 200;

@@ -3,7 +3,7 @@
     <div class="header-section">
       <h2 class="title">Tổng Quan Cửa Hàng</h2>
     </div>
-    
+
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-icon">🛍️</div>

@@ -13,11 +13,11 @@
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
-        <input 
-          type="text" 
+        <input
+          type="text"
           ref="searchInput"
-          v-model="searchQuery" 
-          placeholder="Tìm kiếm..." 
+          v-model="searchQuery"
+          placeholder="Tìm kiếm..."
           @input="onSearch"
         />
       </div>
@@ -25,8 +25,8 @@
         <li v-if="filteredOptions.length === 0" class="no-options">
           Không tìm thấy kết quả
         </li>
-        <li 
-          v-for="opt in filteredOptions" 
+        <li
+          v-for="opt in filteredOptions"
           :key="opt.id"
           class="option-item"
           :class="{ 'is-selected': modelValue === opt.id }"
@@ -89,7 +89,6 @@ const selectOption = (opt) => {
   isOpen.value = false;
 };
 
-// Đóng dropdown khi click ra ngoài
 const handleClickOutside = (e) => {
   if (selectRef.value && !selectRef.value.contains(e.target)) {
     isOpen.value = false;

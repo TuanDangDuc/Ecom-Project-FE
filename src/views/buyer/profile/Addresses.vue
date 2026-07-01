@@ -9,7 +9,7 @@
       <div class="address-card" v-for="addr in addresses" :key="addr.id">
         <div class="info-area">
           <div class="user-row">
-            
+
             <span class="divider">|</span>
             <span class="phone">{{ addr.phoneNumber }}</span>
           </div>
@@ -30,13 +30,12 @@
       </div>
     </div>
 
-    <!-- Modal Form (Simplified) -->
     <div class="modal-overlay" v-if="showAddForm">
       <div class="modal-content">
         <h3>{{ isEditing ? 'Cập Nhật Địa Chỉ' : 'Thêm Địa Chỉ Mới' }}</h3>
         <form @submit.prevent="submitForm">
           <div class="form-row">
-    
+
             <input type="text" v-model="formData.phoneNumber" placeholder="Số điện thoại" required />
           </div>
           <div class="form-row">
@@ -112,7 +111,7 @@ const loadAddresses = async () => {
 
     const res = await addressApi.getByUserId(userId)
 
-    const list = res.data || res.addresses || res.result || []
+    const list = res?.data || res.addresses || res?.result || []
     addresses.value = Array.isArray(list)
       ? list.map(normalizeAddress)
       : []
@@ -308,7 +307,6 @@ onMounted(loadAddresses)
   border-radius: var(--radius-sm);
 }
 
-/* Modal */
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;

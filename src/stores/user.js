@@ -1,22 +1,26 @@
 import { authApi, userApi, addressApi, orderApi, shopApi } from '../api/index.js'
-//bổ sung /login
+
 import { ref, computed } from 'vue';
 import { defineStore } from 'pinia';
 import { useShopStore } from './shop';
 
-
 export const useUserStore = defineStore('user', () => {
-  const savedUser = localStorage.getItem('user');
+
+  localStorage.removeItem('user');
+  localStorage.removeItem('userId');
+  localStorage.removeItem('userRole');
+  localStorage.removeItem('token');
+
+  const savedUser = sessionStorage.getItem('user');
   const currentUser = ref(savedUser ? JSON.parse(savedUser) : null);
-  const addresses = ref([]); // Xóa dữ liệu mẫu
-  const orders = ref([]);    // Xóa dữ liệu mẫu
+  const addresses = ref([]);
+  const orders = ref([]);
 
   const isLoggedIn = computed(() => currentUser.value !== null);
-  
+
   const userAddresses = computed(() => addresses.value);
   const userOrders = computed(() => orders.value);
 
-  // Lấy dữ liệu địa chỉ
   async function fetchAddresses() {
     if (!currentUser.value) return;
     try {
@@ -27,7 +31,6 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  // Lấy dữ liệu đơn hàng
   async function fetchOrders() {
     if (!currentUser.value) return;
     try {
@@ -39,10 +42,6 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  /**
-   * 🛠️ HÀM ĐĂNG NHẬP ĐÃ SỬA THÀNH ASYNC ĐỂ KẾT NỐI API THẬT
-   */
-  //Sửa toàn bộ hàm login
   async function login(username, password) {
   try {
     const loginRes = await authApi.login(username, password)
@@ -54,7 +53,6 @@ export const useUserStore = defineStore('user', () => {
 
     user.role = loginRes.role
 
-    // Lấy shopId của user (nếu là seller)
     try {
       const shopRes = await shopApi.getByUserId(user.id)
       const list = shopRes?.data || shopRes?.shops || shopRes?.result || []
@@ -63,19 +61,18 @@ export const useUserStore = defineStore('user', () => {
         user.shopId = shop.id
       }
     } catch (_) {
-      // User chưa có shop → bỏ qua
+
     }
 
-    localStorage.setItem('userId', user.id)
-    localStorage.setItem('userRole', loginRes.role)
-      localStorage.setItem('user', JSON.stringify(user))
+    sessionStorage.setItem('userId', user.id)
+    sessionStorage.setItem('userRole', loginRes.role)
+    sessionStorage.setItem('user', JSON.stringify(user))
 
-      currentUser.value = user
-      
-      // Load thêm dữ liệu
+    currentUser.value = user
+
       await fetchAddresses();
       await fetchOrders();
-      
+
       return true
     } catch (error) {
       console.error('[Login]', error)
@@ -83,21 +80,22 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  /**
-   * 🛠️ HÀM ĐĂNG XUẤT - XOÁ SẠCH DẤU VẾT TOKEN
-   */
   function logout() {
     currentUser.value = null;
-    localStorage.removeItem('token'); // Xoá bỏ Token ra khỏi bộ nhớ trình duyệt khi thoát
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('userId');
+    sessionStorage.removeItem('userRole');
+    sessionStorage.removeItem('user');
+
+    localStorage.removeItem('token');
     localStorage.removeItem('userId');
     localStorage.removeItem('userRole');
     localStorage.removeItem('user');
   }
 
-  // Quản lý địa chỉ (Address CRUD)
   async function addAddress(addressData) {
     if (!currentUser.value) return null;
-    
+
     const payload = {
       userId: currentUser.value.id,
       ...addressData
@@ -115,18 +113,17 @@ export const useUserStore = defineStore('user', () => {
     return null;
   }
 
-  // Quản lý Đơn hàng
   async function createOrder(address, cartStoreItems, subtotal, shippingFee) {
     if (!currentUser.value) return null;
-    
+
     const payload = {
       recipientName: address.fullName || address.recipientName || 'Khách hàng',
       recipientPhone: address.phoneNumber,
       note: 'Giao hàng',
       shippingAddressId: address.id,
-      cartItemIds: cartStoreItems.map(item => item.id) // Gửi mảng id item giỏ hàng để BE xoá/tạo order
+      cartItemIds: cartStoreItems.map(item => item.id)
     };
-    
+
     try {
       const res = await orderApi.placeOrder(payload);
       if (res && res.success !== false) {
@@ -139,10 +136,9 @@ export const useUserStore = defineStore('user', () => {
     return null;
   }
 
-  // Đăng ký cửa hàng
   async function registerShop(shopName, description = '', avatarUrl = '') {
     if (!currentUser.value || currentUser.value.shopId) return false;
-    
+
     try {
       const payload = {
         name: shopName,
@@ -150,12 +146,11 @@ export const useUserStore = defineStore('user', () => {
         avatarUrl: avatarUrl || `https://picsum.photos/seed/shop${Date.now()}/100/100`,
         userId: currentUser.value.id
       };
-      
+
       const res = await shopApi.create(payload);
       if (res && res.success !== false) {
-        // Cập nhật local
-        currentUser.value.shopId = res.data?.id || res.shop?.id || Date.now();
-        localStorage.setItem('user', JSON.stringify(currentUser.value));
+        currentUser.value.shopId = res?.data?.id || res.shop?.id || Date.now();
+        sessionStorage.setItem('user', JSON.stringify(currentUser.value));
         return true;
       }
     } catch (err) {

@@ -13,18 +13,18 @@
             <span><strong>{{ shop.ratingAverage ?? 0 }}</strong> Đánh giá</span>
             <span><strong>{{ shop.shopStatus || shop.status || 'ACTIVE' }}</strong></span>
           </div>
-          <button class="btn btn-outline btn-sm mt-2">+ Theo Dõi</button>
+          <button class="btn btn-outline btn-sm mt-2" @click="showNotice">+ Theo Dõi</button>
         </div>
       </div>
     </div>
-    
+
     <div class="shop-content mt-4" v-if="shop">
       <div class="tabs">
         <button class="tab active">Tất Cả Sản Phẩm</button>
-        <button class="tab">Sản Phẩm Mới</button>
-        <button class="tab">Bán Chạy</button>
+        <button class="tab" @click="showNotice">Sản Phẩm Mới</button>
+        <button class="tab" @click="showNotice">Bán Chạy</button>
       </div>
-      
+
       <div class="product-grid mt-4">
         <router-link :to="`/product/${product.id}`" class="product-card" v-for="product in shopProducts" :key="product.id">
           <div class="product-image">
@@ -39,13 +39,12 @@
             </div>
             <div class="product-rating">
               <span class="stars">★★★★★</span>
-              <span class="sold">{{ product.id * 15 + 12 }} đã bán</span>
             </div>
           </div>
         </router-link>
       </div>
     </div>
-    
+
     <div v-else class="empty-state mt-4">
       <p>Không tìm thấy cửa hàng.</p>
     </div>
@@ -68,7 +67,7 @@ const shopId = Number(route.params.id)
 const loadShop = async () => {
   try {
     const res = await shopApi.getById(shopId)
-    shop.value = res.data || res.shop || res
+    shop.value = res?.data || res.shop || res
   } catch (err) {
     console.error('[ShopView] loadShop:', err)
     shop.value = null
@@ -78,7 +77,7 @@ const loadShop = async () => {
 const loadProducts = async () => {
   try {
     const res = await productApi.getByShopId(shopId)
-    const list = res.data || res.products || res.result || res || []
+    const list = res?.data || res?.products || res?.result || res || []
     shopProducts.value = Array.isArray(list) ? list : []
   } catch (err) {
     console.error('[ShopView] loadProducts:', err)
@@ -98,6 +97,10 @@ onMounted(async () => {
 
 const formatPrice = (price) => {
   return Number(price || 0).toLocaleString('vi-VN')
+}
+
+const showNotice = () => {
+  alert('Tính năng đang phát triển');
 }
 </script>
 

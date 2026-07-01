@@ -25,8 +25,13 @@
               <td>
                 <div class="user-info">
                   <div class="avatar">
-                    <img :src="user.avatarUrl" v-if="user.avatarUrl" alt="Avatar">
-                    <span v-else>{{ (user.fullName || user.username || 'U').charAt(0) }}</span>
+                    <img
+                      :src="user.avatarUrl"
+                      v-if="user.avatarUrl"
+                      @error="user.avatarUrl = null"
+                      alt="Avatar"
+                    >
+                    <span v-else>{{ (user.fullName || user.username || 'U').charAt(0).toUpperCase() }}</span>
                   </div>
                   <div>
                     <div class="name">{{ user.fullName || user.username }}</div>
@@ -90,7 +95,6 @@
 </template>
 
 <script setup>
-//Sửa lại toàn bộ script setup
 import { ref, onMounted } from 'vue'
 import { userApi } from '../../api'
 
@@ -105,8 +109,8 @@ const loadUsers = async () => {
     const res = await userApi.getAll(page.value, limit.value)
 
     usersList.value =
-      res.data?.data ||
-      res.data ||
+      res?.data?.data ||
+      res?.data ||
       res.users ||
       []
   } catch (err) {
@@ -284,7 +288,6 @@ onMounted(loadUsers)
   background: #10B981;
   color: var(--white);
 }
-
 
 .action-group {
   display: flex;

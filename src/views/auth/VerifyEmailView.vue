@@ -4,10 +4,10 @@
       <div class="icon-wrapper">
         <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mail-icon"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
       </div>
-      
+
       <h2>Xác Thực Email</h2>
       <p class="desc">Chúng tôi đã gửi một liên kết xác thực đến địa chỉ email của bạn. Vui lòng kiểm tra hộp thư đến (hoặc thư mục Spam).</p>
-      
+
       <div class="form-success" v-if="successMsg">{{ successMsg }}</div>
 
       <button class="btn btn-outline btn-block mt-3" @click="handleResend" :disabled="isLoading">
@@ -29,7 +29,7 @@ const successMsg = ref('');
 
 const handleResend = () => {
   isLoading.value = true;
-  // Mock API call
+
   setTimeout(() => {
     isLoading.value = false;
     successMsg.value = 'Liên kết mới đã được gửi thành công!';
