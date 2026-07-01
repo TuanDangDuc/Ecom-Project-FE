@@ -19,12 +19,6 @@
     <section class="container new-products">
       <div class="section-header">
         <h2 class="section-title">NEW PRODUCTS</h2>
-        <div class="tabs">
-          <button class="tab active">Laptops</button>
-          <button class="tab">Smartphones</button>
-          <button class="tab">Cameras</button>
-          <button class="tab">Accessories</button>
-        </div>
       </div>
 
       <div class="product-grid">

@@ -1,31 +1,48 @@
 import { ref, computed } from 'vue';
 import { defineStore } from 'pinia';
-import { shops as mockShops, products as mockProducts, productVariants as mockVariants } from '../mock/data';
+import { shopApi, productApi, variantApi } from '../api/index.js';
 
 export const useShopStore = defineStore('shop', () => {
   const currentShop = ref(null);
-  const shops = ref([...mockShops]);
-  const products = ref([...mockProducts]);
-  const variants = ref([...mockVariants]);
+  const shops = ref([]);
+  const products = ref([]);
+  const variants = ref([]);
 
-  function loadShop(userId) {
-    const shop = shops.value.find(s => s.userId === userId);
-    if (shop) {
-      currentShop.value = shop;
+  async function loadShop(userId) {
+    try {
+      const res = await shopApi.getByUserId(userId);
+      let list = Array.isArray(res) ? res : (res?.data || []);
+      if (list.length > 0) {
+        currentShop.value = list[0];
+      } else {
+        currentShop.value = null;
+      }
+    } catch (err) {
+      console.error('[loadShop]', err);
     }
   }
 
-  function createShop(shopData) {
-    shops.value.push(shopData);
-    currentShop.value = shopData;
+  async function createShop(shopData) {
+    try {
+      const res = await shopApi.create(shopData);
+      if (res && res.success !== false) {
+        // Sau khi tạo xong, load lại shop của user này
+        await loadShop(shopData.userId);
+      }
+    } catch (err) {
+      console.error('[createShop]', err);
+    }
   }
 
-  function updateShop(shopData) {
+  async function updateShop(shopData) {
     if (!currentShop.value) return;
-    const index = shops.value.findIndex(s => s.id === shopData.id);
-    if (index !== -1) {
-      shops.value[index] = { ...shopData };
-      currentShop.value = { ...shopData };
+    try {
+      const res = await shopApi.update(shopData);
+      if (res && res.success !== false) {
+        await loadShop(currentShop.value.userId);
+      }
+    } catch (err) {
+      console.error('[updateShop]', err);
     }
   }
 
@@ -34,25 +51,54 @@ export const useShopStore = defineStore('shop', () => {
     return products.value.filter(p => p.shopId === currentShop.value.id);
   });
 
-  function addProduct(productData, variantList) {
+  // Thực tế shopProducts nên được fetch từ productApi.getByShopId(shopId)
+  // thay vì filter từ danh sách toàn bộ, nên ta viết hàm fetchShopProducts
+  async function fetchShopProducts() {
     if (!currentShop.value) return;
-
-    const newProduct = {
-      ...productData,
-      id: Date.now(),
-      shopId: currentShop.value.id,
-      ratingAverage: 0
-    };
-    products.value.push(newProduct);
-
-    variantList.forEach((v, idx) => {
-      variants.value.push({
-        ...v,
-        id: Date.now() + idx + 1000,
-        productId: newProduct.id
-      });
-    });
+    try {
+      const res = await productApi.getByShopId(currentShop.value.id);
+      products.value = Array.isArray(res) ? res : (res?.data || []);
+    } catch (err) {
+      console.error('[fetchShopProducts]', err);
+    }
   }
 
-  return { currentShop, products, variants, shopProducts, loadShop, createShop, updateShop, addProduct };
+  // Delegate sang store product hoặc dùng trực tiếp api ở đây
+  // Vì product.js đã có createProduct xịn rồi, ta có thể gợi ý chuyển qua dùng store product.
+  // Nhưng nếu vẫn muốn giữ ở đây:
+  async function addProduct(productData, variantList) {
+    if (!currentShop.value) return;
+
+    try {
+      const payload = {
+        name: productData.name,
+        description: productData.description || '',
+        thumbnailUrl: productData.thumbnailUrl || '',
+        basePrice: Number(productData.basePrice) || 0,
+        categoryId: productData.categoryId ? Number(productData.categoryId) : null,
+        typeId: productData.typeId ? Number(productData.typeId) : null,
+        ratingAverage: 0,
+        shopId: currentShop.value.id
+      };
+      
+      const productRes = await productApi.create(payload);
+      if (productRes && productRes.success !== false) {
+        const newProductId = productRes.data?.id || productRes.product?.id || productRes.id;
+        if (newProductId) {
+           for (const v of variantList) {
+              await variantApi.create(newProductId, {
+                options: v.options,
+                price: Number(v.price) || 0,
+                stock: Number(v.stock) || 0
+              });
+           }
+        }
+        await fetchShopProducts();
+      }
+    } catch (err) {
+      console.error('[addProduct]', err);
+    }
+  }
+
+  return { currentShop, products, variants, shopProducts, loadShop, createShop, updateShop, addProduct, fetchShopProducts };
 });

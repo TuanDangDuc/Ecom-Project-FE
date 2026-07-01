@@ -108,7 +108,7 @@
               </div>
               <div class="product-rating">
                 <span class="stars">★★★★★</span>
-                <span class="sold">Đã bán 1k+</span>
+                <span class="sold">{{ product.id * 15 + 12 }} đã bán</span>
               </div>
             </div>
           </router-link>
@@ -123,9 +123,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { products as allProducts, categories } from '../../mock/data';
+import { productApi, categoryApi } from '../../api';
 
 const route = useRoute();
 
@@ -135,6 +135,10 @@ const minPrice = ref(null);
 const maxPrice = ref(null);
 const minRating = ref(0);
 const sortBy = ref('newest');
+
+const allProducts = ref([]);
+const categories = ref([]);
+const loading = ref(false);
 
 const sortOptions = [
   { label: 'Mới nhất', value: 'newest' },
@@ -148,6 +152,33 @@ const pricePresets = [
   { label: '2TR - 10TR', min: 2000000, max: 10000000 },
   { label: 'Trên 10TR', min: 10000000, max: null },
 ];
+
+const loadData = async () => {
+  try {
+    loading.value = true;
+    const [prodRes, catRes] = await Promise.all([
+      productApi.getAll(),
+      categoryApi.getAll()
+    ]);
+    
+    const prodList = prodRes.data || prodRes.products || prodRes.result || prodRes || [];
+    allProducts.value = Array.isArray(prodList) ? prodList.map(p => ({
+      ...p,
+      thumbnailUrl: p.thumbnailUrl || p.imageUrl || 'https://picsum.photos/seed/product/400/400',
+      basePrice: p.basePrice || p.price || 0,
+      ratingAverage: p.ratingAverage || 0,
+    })) : [];
+
+    const catList = catRes.data || catRes.categories || catRes.result || catRes || [];
+    categories.value = Array.isArray(catList) ? catList : [];
+  } catch (err) {
+    console.error('Error loading data in Search:', err);
+  } finally {
+    loading.value = false;
+  }
+};
+
+onMounted(loadData);
 
 watch(() => route.query.keyword, (newKeyword) => {
   query.value = newKeyword || '';
@@ -168,8 +199,17 @@ const hasActiveFilters = computed(() =>
 );
 
 const filteredProducts = computed(() => {
-  let result = allProducts.filter(p => {
-    if (query.value && !p.name.toLowerCase().includes(query.value.toLowerCase())) return false;
+  let result = allProducts.value.filter(p => {
+    // Tìm kiếm theo tên sản phẩm HOẶC tên danh mục
+    if (query.value) {
+      const q = query.value.toLowerCase();
+      const matchName = p.name.toLowerCase().includes(q);
+      const cat = categories.value.find(c => c.id === p.categoryId);
+      const matchCat = cat && cat.name.toLowerCase().includes(q);
+      
+      if (!matchName && !matchCat) return false;
+    }
+
     if (selectedCategories.value.length > 0 && !selectedCategories.value.includes(p.categoryId)) return false;
     if (minPrice.value && p.basePrice < minPrice.value) return false;
     if (maxPrice.value && p.basePrice > maxPrice.value) return false;
@@ -180,7 +220,7 @@ const filteredProducts = computed(() => {
   switch (sortBy.value) {
     case 'price_asc': return [...result].sort((a, b) => a.basePrice - b.basePrice);
     case 'price_desc': return [...result].sort((a, b) => b.basePrice - a.basePrice);
-    case 'popular': return [...result].sort((a, b) => b.ratingAverage - a.ratingAverage);
+    case 'popular': return [...result].sort((a, b) => (b.ratingAverage || 0) - (a.ratingAverage || 0));
     case 'newest': return [...result].sort((a, b) => b.id - a.id);
     default: return result;
   }
@@ -195,7 +235,7 @@ const resetFilters = () => {
 };
 
 const formatPrice = (price) => {
-  return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return Math.round(Number(price) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 };
 </script>
 

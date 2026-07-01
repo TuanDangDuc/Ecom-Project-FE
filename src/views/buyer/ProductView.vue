@@ -172,7 +172,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { productApi, shopApi, reviewApi, variantApi } from '../../api/index.js'
 import { useCartStore } from '../../stores/cart'
@@ -191,6 +191,14 @@ const selectedImage = ref(null)
 const selectedVariant = ref(null)
 const quantity = ref(1)
 const loading = ref(false)
+
+watch(selectedVariant, (newVal) => {
+  if (newVal && newVal.imageUrl) {
+    selectedImage.value = newVal.imageUrl
+  } else if (product.value) {
+    selectedImage.value = product.value.thumbnailUrl || product.value.imageUrl
+  }
+}, { immediate: true })
 
 const normalizeProduct = (p) => ({
   id: p.id,
@@ -245,7 +253,15 @@ const loadVariants = async () => {
     const list = res.data || res.variants || []
 
     variants.value = Array.isArray(list) ? list : []
-    selectedVariant.value = variants.value.length > 0 ? variants.value[0] : null
+    if (variants.value.length > 0) {
+      selectedVariant.value = variants.value[0]
+      // Cập nhật ảnh ngay khi load xong biến thể đầu tiên
+      if (variants.value[0].imageUrl) {
+        selectedImage.value = variants.value[0].imageUrl
+      }
+    } else {
+      selectedVariant.value = null
+    }
   } catch (err) {
     console.error('[ProductView] loadVariants:', err)
     variants.value = []

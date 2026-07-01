@@ -64,17 +64,22 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useUserStore } from '../../stores/user';
-import { orders } from '../../mock/data';
+import { orderApi } from '../../api/index';
 
 const userStore = useUserStore();
 const shopOrders = ref([]);
 
-onMounted(() => {
-  // In a real app, fetch orders by shopId
-  // Here we just mock it. Assume user1 (shopId 101) has all mock orders.
-  shopOrders.value = [...orders];
+onMounted(async () => {
+  try {
+    // In a real app, this might be a specific endpoint for shop orders.
+    // Assuming getMyOrders returns orders relevant to the current user (seller).
+    const res = await orderApi.getMyOrders();
+    shopOrders.value = Array.isArray(res) ? res : (res?.data || []);
+  } catch (error) {
+    console.error('Lỗi khi tải đơn hàng:', error);
+  }
 });
 
 const formatPrice = (price) => {
@@ -89,9 +94,27 @@ const getStatusClass = (status) => {
   return '';
 };
 
-const updateStatus = (order, newStatus) => {
-  order.status = newStatus;
-  alert(`Đã cập nhật trạng thái đơn hàng thành: ${newStatus}`);
+const updateStatus = async (order, newStatus) => {
+  try {
+    const statusMap = {
+      'Đang giao': 'SHIPPING',
+      'Đã giao': 'COMPLETED',
+      'Đã hủy': 'CANCELED'
+    };
+    const apiStatus = statusMap[newStatus] || newStatus;
+    
+    // Cập nhật trạng thái qua API
+    const res = await orderApi.updateStatus(order.id, apiStatus);
+    if (res && res.success !== false) {
+      order.status = newStatus;
+      alert(`Đã cập nhật trạng thái đơn hàng thành: ${newStatus}`);
+    } else {
+      alert('Cập nhật trạng thái thất bại');
+    }
+  } catch (error) {
+    console.error('Lỗi cập nhật trạng thái:', error);
+    alert('Có lỗi xảy ra khi cập nhật trạng thái');
+  }
 };
 </script>
 

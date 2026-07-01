@@ -61,11 +61,32 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import { users, shops } from '../../mock/data';
+import { ref, onMounted } from 'vue';
+import { userApi, shopApi, orderApi } from '../../api/index';
 
-const usersCount = computed(() => users.length);
-const shopsCount = computed(() => shops.length);
+const usersCount = ref(0);
+const shopsCount = ref(0);
+const ordersCount = ref(0);
+
+onMounted(async () => {
+  try {
+    // 1. Fetch Users
+    const resUsers = await userApi.getAll(1, 1000);
+    const usersList = Array.isArray(resUsers) ? resUsers : (resUsers?.data || resUsers?.users || []);
+    usersCount.value = usersList.length;
+
+    // 2. Fetch Shops
+    const resShops = await shopApi.getAll(1, 1000);
+    const shopsList = Array.isArray(resShops) ? resShops : (resShops?.data || resShops?.shops || []);
+    shopsCount.value = shopsList.length;
+    
+    // 3. Fetch Orders (giả sử có thể lấy toàn bộ)
+    // Nếu BE không hỗ trợ getAll cho orders trên admin, ta để tạm mock count
+    // const resOrders = await orderApi.getAll(); // Thêm nếu BE có
+  } catch (err) {
+    console.error('Lỗi tải dashboard:', err);
+  }
+});
 </script>
 
 <style scoped>

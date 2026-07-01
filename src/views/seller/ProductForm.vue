@@ -199,7 +199,7 @@ const product = ref({
 });
 
 const variants = ref([
-  { options: 'Mặc định', price: 0, stock: 10, imageUrls: [] }
+  { options: 'Mặc định', price: 0, stock: 10, imageUrls: [], imageFiles: [] }
 ]);
 
 // ── Modal state ─────────────────────────────────────────────
@@ -246,11 +246,14 @@ const onThumbChange = async (e) => {
 
 // ── Variants ─────────────────────────────────────────────────
 const addVariant = () => {
-  variants.value.push({ options: '', price: product.value.basePrice, stock: 10, imageUrls: [] });
+  variants.value.push({ options: '', price: product.value.basePrice, stock: 10, imageUrls: [], imageFiles: [] });
 };
 const removeVariant = (idx) => variants.value.splice(idx, 1);
 
-const removeVariantImage = (vIdx, imgIdx) => variants.value[vIdx].imageUrls.splice(imgIdx, 1);
+const removeVariantImage = (vIdx, imgIdx) => {
+  variants.value[vIdx].imageUrls.splice(imgIdx, 1);
+  variants.value[vIdx].imageFiles?.splice(imgIdx, 1);
+};
 
 const triggerVariantUpload = (idx) => {
   document.getElementById(`variant-upload-${idx}`)?.click();
@@ -272,12 +275,16 @@ const onVariantImagesChange = async (e, idx) => {
 
   try {
     isUploading.value = true;
-    // Upload song song tất cả ảnh hợp lệ
-    const urls = await Promise.all(validFiles.map(f => uploadToCloudinary(f)));
     if (!variants.value[idx].imageUrls) {
       variants.value[idx].imageUrls = [];
     }
-    variants.value[idx].imageUrls.push(...urls);
+    if (!variants.value[idx].imageFiles) {
+      variants.value[idx].imageFiles = [];
+    }
+    for (const file of validFiles) {
+      variants.value[idx].imageFiles.push(file);
+      variants.value[idx].imageUrls.push(URL.createObjectURL(file));
+    }
   } catch (err) {
     alert('Upload ảnh biến thể thất bại: ' + err.message);
   } finally {
@@ -301,6 +308,7 @@ const handleSubmit = async () => {
   const cleanVariants = variants.value.map(v => ({
     ...v,
     imageUrls: (v.imageUrls || []).filter(u => u.trim() !== ''),
+    imageFiles: v.imageFiles || [],
   }));
 
   const result = await productStore.createProduct(product.value, cleanVariants);

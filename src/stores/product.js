@@ -188,18 +188,17 @@ export const useProductStore = defineStore('product', () => {
         });
 
         // 3. Upload ảnh cho variant (nếu có)
-        if (v.imageUrls && v.imageUrls.length > 0) {
+        if (v.imageFiles && v.imageFiles.length > 0) {
           const variantId =
             varRes.data?.id ??
             varRes.variant?.id ??
             varRes.id;
           if (variantId) {
-            for (let i = 0; i < v.imageUrls.length; i++) {
-              await productImageApi.addToVariant(variantId, {
-                url:        v.imageUrls[i],
-                imageOrder: i,
-              });
+            const formData = new FormData();
+            for (const file of v.imageFiles) {
+              formData.append('images[]', file);
             }
+            await productImageApi.addToVariant(variantId, formData);
           }
         }
       }

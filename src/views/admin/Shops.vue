@@ -72,13 +72,17 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { shops } from '../../mock/data'
 import { shopApi } from '../../api'
 
 const shopsList = ref([])
 
-onMounted(() => {
-  shopsList.value = [...shops]
+onMounted(async () => {
+  try {
+    const res = await shopApi.getAll(1, 100); // Lấy số lượng lớn hoặc backend trả full
+    shopsList.value = Array.isArray(res) ? res : (res?.data || res?.shops || []);
+  } catch (error) {
+    console.error('Lỗi khi tải danh sách cửa hàng:', error);
+  }
 })
 
 const toggleStatus = async (shop) => {

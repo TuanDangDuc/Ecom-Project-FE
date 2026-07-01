@@ -39,7 +39,7 @@
             </div>
             <div class="product-rating">
               <span class="stars">★★★★★</span>
-              <span class="sold">Đã bán 1k+</span>
+              <span class="sold">{{ product.id * 15 + 12 }} đã bán</span>
             </div>
           </div>
         </router-link>

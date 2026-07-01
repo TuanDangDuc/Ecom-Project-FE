@@ -31,6 +31,28 @@ async function request(method, path, body = null) {
   return data
 }
 
+async function requestMultipart(method, path, formData) {
+  const userId = localStorage.getItem('userId')
+  const userRole = localStorage.getItem('userRole')
+
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method,
+    headers: {
+      ...(userId ? { 'X-User-Id': userId } : {}),
+      ...(userRole ? { 'X-User-Role': userRole } : {}),
+    },
+    body: formData,
+  })
+
+  const data = await res.json().catch(() => null)
+
+  if (!res.ok) {
+    throw new Error(data?.message || `HTTP ${res.status}`)
+  }
+
+  return data
+}
+
 export const authApi = {
   login: (username, password) =>
     request('POST', '/auth/login', { username, password }),
@@ -69,6 +91,7 @@ export const userApi = {
 }
 
 export const shopApi = {
+  getAll: (page = 1, limit = 10) => request('GET', `/shop?page=${page}&limit=${limit}`),
   create: (payload) => request('POST', '/shop', payload),
   update: (payload) => request('PUT', '/shop', payload),
   getByUserId: (userId) => request('GET', `/shop/user?userId=${userId}`),
@@ -157,6 +180,12 @@ export const orderApi = {
   updateStatus(orderId, status) {
     return request('PUT', `/orders/${orderId}/status`, { status });
   },
+
+  // Cập nhật trạng thái item trong đơn hàng
+  // PUT /order-item/:id/status
+  updateItemStatus(id, status) {
+    return request('PUT', `/order-item/${id}/status`, { status });
+  },
 };
 
 // ────────────────────────────────────────────────────────────
@@ -175,7 +204,10 @@ export const reviewApi = {
     request('POST', `/reviews/${reviewId}/images`, payload),
 
   deleteImage: (imageId) =>
-    request('DELETE', `/review-images/${imageId}`)
+    request('DELETE', `/review-images/${imageId}`),
+
+  replyReview: (id, reply) =>
+    request('PUT', `/reviews/${id}/reply`, { reply })
 }
 
 export const categoryApi = {
@@ -203,7 +235,9 @@ export const variantApi = {
 
 export const productImageApi = {
   addToVariant: (variantId, payload) =>
-    request('POST', `/variants/${variantId}/images`, payload),
+    payload instanceof FormData
+      ? requestMultipart('POST', `/variants/${variantId}/images`, payload)
+      : request('POST', `/variants/${variantId}/images`, payload),
   delete: (id) =>
     request('DELETE', `/product-images/${id}`),
 }
