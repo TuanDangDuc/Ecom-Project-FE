@@ -113,7 +113,7 @@ onMounted(async () => {
   let current = user.value
 
   if (!current) {
-    const savedUser = localStorage.getItem('user')
+    const savedUser = sessionStorage.getItem('user') || localStorage.getItem('user')
 
     if (savedUser) {
       current = JSON.parse(savedUser)
@@ -138,7 +138,7 @@ const saveProfile = async () => {
     isSaving.value = true
     successMsg.value = ''
 
-    const savedUser = JSON.parse(localStorage.getItem('user') || '{}')
+    const savedUser = JSON.parse(sessionStorage.getItem('user') || localStorage.getItem('user') || '{}')
     const username =
       formData.value.username ||
       user.value?.username ||
@@ -170,7 +170,7 @@ const saveProfile = async () => {
     }
 
     userStore.currentUser = updatedUser
-    localStorage.setItem('user', JSON.stringify(updatedUser))
+    sessionStorage.setItem('user', JSON.stringify(updatedUser))
 
     successMsg.value = 'Lưu thành công!'
     setTimeout(() => successMsg.value = '', 3000)

@@ -68,7 +68,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { addressApi } from '../../../api'
+import { useUserStore } from '../../../stores/user'
 
+const userStore = useUserStore()
 const addresses = ref([])
 const showAddForm = ref(false)
 const isEditing = ref(false)
@@ -104,10 +106,19 @@ const normalizeAddress = (addr) => ({
   country: addr.country || 'Vietnam'
 })
 
+const getCurrentUserId = () => {
+  const storedId = sessionStorage.getItem('userId') || localStorage.getItem('userId')
+  return Number(userStore.currentUser?.id || storedId || 0)
+}
+
 const loadAddresses = async () => {
   try {
     loading.value = true
-    const userId = Number(localStorage.getItem('userId'))
+    const userId = getCurrentUserId()
+    if (!userId) {
+      addresses.value = []
+      return
+    }
 
     const res = await addressApi.getByUserId(userId)
 
@@ -136,8 +147,6 @@ const closeForm = () => {
 }
 
 const buildCreatePayload = () => {
-  const userId = Number(localStorage.getItem('userId'))
-
   return {
     province: formData.value.province,
     district: formData.value.district,
@@ -148,7 +157,7 @@ const buildCreatePayload = () => {
     phoneNumber: formData.value.phoneNumber,
     city: formData.value.city,
     country: formData.value.country,
-    userId
+    userId: getCurrentUserId()
   }
 }
 
@@ -171,6 +180,11 @@ const submitForm = async () => {
   try {
     if (!formData.value.province || !formData.value.district || !formData.value.specificAddress || !formData.value.phoneNumber) {
       alert('Vui lòng nhập đầy đủ tỉnh/thành, quận/huyện, địa chỉ cụ thể và số điện thoại.')
+      return
+    }
+
+    if (!getCurrentUserId()) {
+      alert('Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.')
       return
     }
 

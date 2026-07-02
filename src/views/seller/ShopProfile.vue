@@ -63,7 +63,7 @@ const triggerAvatarInput = () => avatarInputRef.value?.click()
 const loadShop = async () => {
   try {
     loading.value = true
-    const userId = localStorage.getItem('userId')
+    const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId')
     const res = await shopApi.getByUserId(userId)
 
     const shop = Array.isArray(res?.data) ? res?.data[0] : res?.data
@@ -113,7 +113,7 @@ const handleUpdate = async () => {
         avatarUrl: formData.value.avatarUrl
       })
     } else {
-      const userId = localStorage.getItem('userId')
+      const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId')
 
       await shopApi.create({
         name: formData.value.name,
