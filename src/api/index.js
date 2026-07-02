@@ -1,6 +1,6 @@
 
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://ecom.api.anhchuno.id.vn/api'
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://api.ecom.anhchuno.id.vn/api'
 
 async function request(method, path, body = null) {
   const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId')
