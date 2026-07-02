@@ -10,6 +10,7 @@
         <table class="users-table">
           <thead>
             <tr>
+              <th>STT</th>
               <th>ID</th>
               <th>Họ và Tên</th>
               <th>Giới Tính</th>
@@ -19,7 +20,14 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="user in usersList" :key="user.id">
+            <tr v-if="loading">
+              <td colspan="7" class="table-message">Đang tải danh sách người dùng...</td>
+            </tr>
+            <tr v-else-if="usersList.length === 0">
+              <td colspan="7" class="table-message">Không có người dùng ở trang này.</td>
+            </tr>
+            <tr v-for="(user, index) in usersList" :key="user.id">
+              <td>{{ (page - 1) * limit + index + 1 }}</td>
               <td>#{{ user.id }}</td>
 
               <td>
@@ -90,18 +98,32 @@
           </tbody>
         </table>
       </div>
+
+      <div class="pagination-bar">
+        <span>Trang {{ page }} · {{ usersList.length }} người dùng</span>
+        <div class="pagination-actions">
+          <button class="page-btn" :disabled="page === 1 || loading" @click="changePage(page - 1)">
+            Trước
+          </button>
+          <button class="page-number" disabled>{{ page }}</button>
+          <button class="page-btn" :disabled="!hasNextPage || loading" @click="changePage(page + 1)">
+            Sau
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { userApi } from '../../api'
 
 const usersList = ref([])
 const page = ref(1)
 const limit = ref(10)
 const loading = ref(false)
+const hasNextPage = computed(() => usersList.value.length === limit.value)
 
 const loadUsers = async () => {
   try {
@@ -117,6 +139,17 @@ const loadUsers = async () => {
     alert(err.message || 'Không tải được danh sách user')
   } finally {
     loading.value = false
+  }
+}
+
+const changePage = async (nextPage) => {
+  if (nextPage < 1 || loading.value) return
+  page.value = nextPage
+  await loadUsers()
+
+  if (usersList.value.length === 0 && page.value > 1) {
+    page.value -= 1
+    await loadUsers()
   }
 }
 
@@ -155,6 +188,10 @@ const deleteUser = async (user) => {
   try {
     await userApi.deleteByUsername(user.username || user.userName)
     await loadUsers()
+    if (usersList.value.length === 0 && page.value > 1) {
+      page.value -= 1
+      await loadUsers()
+    }
   } catch (err) {
     alert(err.message || 'Xóa user thất bại')
   }
@@ -207,6 +244,60 @@ onMounted(loadUsers)
 
 .users-table td:last-child {
   min-width: 260px;
+}
+
+.table-message {
+  padding: 32px 24px;
+  text-align: center !important;
+  color: var(--text-light);
+}
+
+.pagination-bar {
+  min-height: 64px;
+  padding: 12px 24px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--text-light);
+  font-size: 14px;
+}
+
+.pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-btn,
+.page-number {
+  min-width: 40px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--white);
+  color: var(--text-dark);
+  cursor: pointer;
+}
+
+.page-number {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.page-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+@media (max-width: 640px) {
+  .pagination-bar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
 .user-info {
